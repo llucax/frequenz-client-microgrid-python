@@ -14,7 +14,16 @@ name = "frequenz-client-microgrid"
 description = "Microgrid API client for Python"
 readme = "README.md"
 license = { text = "MIT" }
-keywords = ["frequenz", "python", "lib", "library", "client-microgrid", "client", "microgrid", "api"]
+keywords = [
+  "api",
+  "client",
+  "frequenz",
+  "grpc",
+  "lib",
+  "library",
+  "microgrid",
+  "python",
+]
 # TODO(cookiecutter): Remove and add more classifiers if appropriate
 classifiers = [
   "Development Status :: 3 - Alpha",
