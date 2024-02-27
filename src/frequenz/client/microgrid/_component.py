@@ -6,15 +6,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import TYPE_CHECKING
 
 import frequenz.api.common.components_pb2 as components_pb
 import frequenz.api.microgrid.grid_pb2 as grid_pb
 import frequenz.api.microgrid.inverter_pb2 as inverter_pb
-
-if TYPE_CHECKING:
-    # Break circular import
-    from ...timeseries import Fuse
 
 
 class ComponentType(Enum):
@@ -127,6 +122,14 @@ def _component_category_from_protobuf(
 
 
 @dataclass(frozen=True)
+class Fuse:
+    """Fuse data class."""
+
+    max_current: float
+    """Rated current of the fuse."""
+
+
+@dataclass(frozen=True)
 class ComponentMetadata:
     """Base class for component metadata classes."""
 
@@ -143,10 +146,8 @@ def _component_metadata_from_protobuf(
     component_category: components_pb.ComponentCategory.ValueType,
     component_metadata: grid_pb.Metadata,
 ) -> GridMetadata | None:
-    from ...timeseries import Current, Fuse  # pylint: disable=import-outside-toplevel
-
     if component_category == components_pb.ComponentCategory.COMPONENT_CATEGORY_GRID:
-        max_current = Current.from_amperes(component_metadata.rated_fuse_current)
+        max_current = component_metadata.rated_fuse_current
         fuse = Fuse(max_current)
         return GridMetadata(fuse)
 

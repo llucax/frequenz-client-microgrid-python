@@ -57,8 +57,6 @@ from google.protobuf.empty_pb2 import Empty
 from google.protobuf.timestamp_pb2 import Timestamp
 from google.protobuf.wrappers_pb2 import BoolValue
 
-from frequenz.sdk.timeseries import Current
-
 
 class MockMicrogridServicer(  # pylint: disable=too-many-public-methods
     MicrogridServicer
@@ -91,7 +89,7 @@ class MockMicrogridServicer(  # pylint: disable=too-many-public-methods
         self,
         component_id: int,
         component_category: ComponentCategory.V,
-        max_current: Current | None = None,
+        max_current: float | None = None,
         inverter_type: InverterType.V = InverterType.INVERTER_TYPE_UNSPECIFIED,
     ) -> None:
         """Add a component to the mock service."""
@@ -111,7 +109,7 @@ class MockMicrogridServicer(  # pylint: disable=too-many-public-methods
                 Component(
                     id=component_id,
                     category=component_category,
-                    grid=GridMetadata(rated_fuse_current=int(max_current.as_amperes())),
+                    grid=GridMetadata(rated_fuse_current=int(max_current)),
                 )
             )
         else:
