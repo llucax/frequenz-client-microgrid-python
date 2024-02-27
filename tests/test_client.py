@@ -40,7 +40,7 @@ from frequenz.client.microgrid._retry import LinearBackoff
 
 from . import mock_api
 
-# pylint: disable=missing-function-docstring,use-implicit-booleaness-not-comparison
+# pylint: disable=missing-function-docstring
 # pylint: disable=missing-class-docstring
 
 
@@ -349,7 +349,7 @@ class TestMicrogridGrpcClient:
                 return PbComponentList(components=self._components)
 
         async with _gprc_server(BadServicer()) as (servicer, microgrid):
-            assert list(await microgrid.connections()) == []
+            assert not list(await microgrid.connections())
             for component_id in [1, 2, 3, 4, 5, 6, 7, 8, 9]:
                 servicer.add_component(
                     component_id,
