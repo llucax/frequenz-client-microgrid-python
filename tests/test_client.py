@@ -12,21 +12,24 @@ import pytest
 from frequenz.api.common import components_pb2 as components_pb
 from frequenz.api.common import metrics_pb2 as metrics_pb
 from frequenz.api.microgrid import microgrid_pb2 as microgrid_pb
+from frequenz.sdk.timeseries import Current, Fuse
 from google.protobuf.empty_pb2 import Empty  # pylint: disable=no-name-in-module
 
-from frequenz.sdk.microgrid import client
-from frequenz.sdk.microgrid.client import Connection, LinearBackoff
-from frequenz.sdk.microgrid.component import (
-    BatteryData,
+from frequenz.client.microgrid import _client as client
+from frequenz.client.microgrid._component import (
     Component,
     ComponentCategory,
-    EVChargerData,
     GridMetadata,
-    InverterData,
     InverterType,
+)
+from frequenz.client.microgrid._component_data import (
+    BatteryData,
+    EVChargerData,
+    InverterData,
     MeterData,
 )
-from frequenz.sdk.timeseries import Current, Fuse
+from frequenz.client.microgrid._connection import Connection
+from frequenz.client.microgrid._retry import LinearBackoff
 
 from . import mock_api
 

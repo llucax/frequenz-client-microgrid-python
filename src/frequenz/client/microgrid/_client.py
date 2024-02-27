@@ -17,23 +17,18 @@ from frequenz.api.microgrid.microgrid_pb2_grpc import MicrogridStub
 from frequenz.channels import Broadcast, Receiver, Sender
 from google.protobuf.empty_pb2 import Empty  # pylint: disable=no-name-in-module
 
-from ..._internal._constants import RECEIVER_MAX_SIZE
-from ..component import (
-    BatteryData,
+from ._component import (
     Component,
     ComponentCategory,
-    EVChargerData,
-    InverterData,
-    MeterData,
-)
-from ..component._component import (
     _component_category_from_protobuf,
     _component_metadata_from_protobuf,
     _component_type_from_protobuf,
 )
-from ..metadata import Location, Metadata
+from ._component_data import BatteryData, EVChargerData, InverterData, MeterData
 from ._connection import Connection
+from ._constants import RECEIVER_MAX_SIZE
 from ._retry import LinearBackoff, RetryStrategy
+from .metadata import Location, Metadata
 
 DEFAULT_GRPC_CALL_TIMEOUT = 60.0
 """The default timeout for gRPC calls made by this client (in seconds)."""
