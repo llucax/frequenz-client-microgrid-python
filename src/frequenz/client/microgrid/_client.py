@@ -231,7 +231,14 @@ class MicrogridGrpcClient(MicrogridApiClient):
             raise grpc.aio.AioRpcError(
                 code=err.code(),
                 initial_metadata=err.initial_metadata(),
-                trailing_metadata=err.trailing_metadata(),
+                # We need to ignore these errors for some reason, otherwise we get this
+                # mypy error:
+                #   Argument "trailing_metadata" to "AioRpcError" has incompatible type
+                #   "tuple[_Metadatum, ...]"; expected "Metadata"
+                # According to grpc.aio documentation, both should have the type
+                # Metadata.
+                # https://grpc.github.io/grpc/python/grpc_asyncio.html#grpc.aio.AioRpcError
+                trailing_metadata=err.trailing_metadata(),  # type: ignore[arg-type]
                 details=msg,
                 debug_error_string=err.debug_error_string(),
             )
@@ -324,7 +331,8 @@ class MicrogridGrpcClient(MicrogridApiClient):
             raise grpc.aio.AioRpcError(
                 code=err.code(),
                 initial_metadata=err.initial_metadata(),
-                trailing_metadata=err.trailing_metadata(),
+                # See the comment in def components() for why we need to ignore
+                trailing_metadata=err.trailing_metadata(),  # type: ignore[arg-type]
                 details=msg,
                 debug_error_string=err.debug_error_string(),
             )
@@ -600,7 +608,8 @@ class MicrogridGrpcClient(MicrogridApiClient):
             raise grpc.aio.AioRpcError(
                 code=err.code(),
                 initial_metadata=err.initial_metadata(),
-                trailing_metadata=err.trailing_metadata(),
+                # See the comment in def components() for why we need to ignore
+                trailing_metadata=err.trailing_metadata(),  # type: ignore[arg-type]
                 details=msg,
                 debug_error_string=err.debug_error_string(),
             )
