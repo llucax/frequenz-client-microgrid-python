@@ -49,7 +49,7 @@ _logger = logging.getLogger(__name__)
 # pylint: disable=no-member
 
 
-class MicrogridGrpcClient:
+class ApiClient:
     """Microgrid API client implementation using gRPC as the underlying protocol."""
 
     def __init__(
