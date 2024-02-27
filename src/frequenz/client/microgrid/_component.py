@@ -57,11 +57,7 @@ def _component_type_from_protobuf(
         component_category
         == components_pb.ComponentCategory.COMPONENT_CATEGORY_INVERTER
     ):
-        # mypy 1.4.1 crashes at this line, maybe it doesn't like the name of the "type"
-        # attribute in this context.  Hence the "# type: ignore".
-        if not any(
-            t.value == component_metadata.type for t in InverterType  # type: ignore
-        ):
+        if not any(int(t.value) == int(component_metadata.type) for t in InverterType):
             return None
 
         return InverterType(component_metadata.type)
