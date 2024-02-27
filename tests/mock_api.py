@@ -12,11 +12,11 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Iterable, Iterator
-
-# pylint: disable=invalid-name,no-name-in-module,unused-import
 from concurrent import futures
 
 import grpc
+
+# pylint: disable=no-name-in-module
 from frequenz.api.common.components_pb2 import (
     COMPONENT_CATEGORY_BATTERY,
     COMPONENT_CATEGORY_EV_CHARGER,
@@ -57,6 +57,8 @@ from google.protobuf.empty_pb2 import Empty
 from google.protobuf.timestamp_pb2 import Timestamp
 from google.protobuf.wrappers_pb2 import BoolValue
 
+# pylint: enable=no-name-in-module
+
 
 class MockMicrogridServicer(  # pylint: disable=too-many-public-methods
     MicrogridServicer
@@ -70,7 +72,7 @@ class MockMicrogridServicer(  # pylint: disable=too-many-public-methods
 
     def __init__(
         self,
-        components: list[tuple[int, ComponentCategory.V]] | None = None,
+        components: list[tuple[int, ComponentCategory.ValueType]] | None = None,
         connections: list[tuple[int, int]] | None = None,
     ) -> None:
         """Create a MockMicrogridServicer instance."""
@@ -88,9 +90,9 @@ class MockMicrogridServicer(  # pylint: disable=too-many-public-methods
     def add_component(
         self,
         component_id: int,
-        component_category: ComponentCategory.V,
+        component_category: ComponentCategory.ValueType,
         max_current: float | None = None,
-        inverter_type: InverterType.V = InverterType.INVERTER_TYPE_UNSPECIFIED,
+        inverter_type: InverterType.ValueType = InverterType.INVERTER_TYPE_UNSPECIFIED,
     ) -> None:
         """Add a component to the mock service."""
         if component_category == ComponentCategory.COMPONENT_CATEGORY_INVERTER:
@@ -121,7 +123,9 @@ class MockMicrogridServicer(  # pylint: disable=too-many-public-methods
         """Add a connection to the mock service."""
         self._connections.append(Connection(start=start, end=end))
 
-    def set_components(self, components: list[tuple[int, ComponentCategory.V]]) -> None:
+    def set_components(
+        self, components: list[tuple[int, ComponentCategory.ValueType]]
+    ) -> None:
         """Set components to mock service, dropping existing."""
         self._components.clear()
         self._components.extend(
