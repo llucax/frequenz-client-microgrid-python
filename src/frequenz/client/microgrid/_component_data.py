@@ -121,7 +121,7 @@ class MeterData(ComponentData):
 
 
 @dataclass(frozen=True)
-class BatteryData(ComponentData):
+class BatteryData(ComponentData):  # pylint: disable=too-many-instance-attributes
     """A wrapper class for holding battery data."""
 
     soc: float
@@ -230,7 +230,7 @@ class BatteryData(ComponentData):
 
 
 @dataclass(frozen=True)
-class InverterData(ComponentData):
+class InverterData(ComponentData):  # pylint: disable=too-many-instance-attributes
     """A wrapper class for holding inverter data."""
 
     active_power: float
@@ -352,7 +352,7 @@ class InverterData(ComponentData):
 
 
 @dataclass(frozen=True)
-class EVChargerData(ComponentData):
+class EVChargerData(ComponentData):  # pylint: disable=too-many-instance-attributes
     """A wrapper class for holding ev_charger data."""
 
     active_power: float
