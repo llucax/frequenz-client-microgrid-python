@@ -49,7 +49,7 @@ _CURRENT_PORT: int = 57897
 @contextlib.asynccontextmanager
 async def _gprc_server(
     servicer: mock_api.MockMicrogridServicer | None = None,
-) -> AsyncIterator[tuple[mock_api.MockMicrogridServicer, client.MicrogridApiClient]]:
+) -> AsyncIterator[tuple[mock_api.MockMicrogridServicer, client.MicrogridGrpcClient]]:
     global _CURRENT_PORT  # pylint: disable=global-statement
     port = _CURRENT_PORT
     _CURRENT_PORT += 1

@@ -5,7 +5,6 @@
 
 import asyncio
 import logging
-from abc import ABC, abstractmethod
 from collections.abc import Awaitable, Callable, Iterable
 from typing import Any, TypeVar, cast
 
@@ -47,137 +46,10 @@ _GenericComponentData = TypeVar(
 
 _logger = logging.getLogger(__name__)
 
-
-class MicrogridApiClient(ABC):
-    """Base interface for microgrid API clients to implement."""
-
-    @abstractmethod
-    async def components(self) -> Iterable[Component]:
-        """Fetch all the components present in the microgrid.
-
-        Returns:
-            Iterator whose elements are all the components in the microgrid.
-        """
-
-    @abstractmethod
-    async def metadata(self) -> Metadata:
-        """Fetch the microgrid metadata.
-
-        Returns:
-            the microgrid metadata.
-        """
-
-    @abstractmethod
-    async def connections(
-        self,
-        starts: set[int] | None = None,
-        ends: set[int] | None = None,
-    ) -> Iterable[Connection]:
-        """Fetch the connections between components in the microgrid.
-
-        Args:
-            starts: if set and non-empty, only include connections whose start
-                value matches one of the provided component IDs
-            ends: if set and non-empty, only include connections whose end value
-                matches one of the provided component IDs
-
-        Returns:
-            Microgrid connections matching the provided start and end filters.
-        """
-
-    @abstractmethod
-    async def meter_data(
-        self,
-        component_id: int,
-        maxsize: int = RECEIVER_MAX_SIZE,
-    ) -> Receiver[MeterData]:
-        """Return a channel receiver that provides a `MeterData` stream.
-
-        Args:
-            component_id: id of the meter to get data for.
-            maxsize: Size of the receiver's buffer.
-
-        Returns:
-            A channel receiver that provides realtime meter data.
-        """
-
-    @abstractmethod
-    async def battery_data(
-        self,
-        component_id: int,
-        maxsize: int = RECEIVER_MAX_SIZE,
-    ) -> Receiver[BatteryData]:
-        """Return a channel receiver that provides a `BatteryData` stream.
-
-        Args:
-            component_id: id of the battery to get data for.
-            maxsize: Size of the receiver's buffer.
-
-        Returns:
-            A channel receiver that provides realtime battery data.
-        """
-
-    @abstractmethod
-    async def inverter_data(
-        self,
-        component_id: int,
-        maxsize: int = RECEIVER_MAX_SIZE,
-    ) -> Receiver[InverterData]:
-        """Return a channel receiver that provides an `InverterData` stream.
-
-        Args:
-            component_id: id of the inverter to get data for.
-            maxsize: Size of the receiver's buffer.
-
-        Returns:
-            A channel receiver that provides realtime inverter data.
-        """
-
-    @abstractmethod
-    async def ev_charger_data(
-        self,
-        component_id: int,
-        maxsize: int = RECEIVER_MAX_SIZE,
-    ) -> Receiver[EVChargerData]:
-        """Return a channel receiver that provides an `EvChargeData` stream.
-
-        Args:
-            component_id: id of the ev charger to get data for.
-            maxsize: Size of the receiver's buffer.
-
-        Returns:
-            A channel receiver that provides realtime ev charger data.
-        """
-
-    @abstractmethod
-    async def set_power(self, component_id: int, power_w: float) -> None:
-        """Send request to the Microgrid to set power for component.
-
-        If power > 0, then component will be charged with this power.
-        If power < 0, then component will be discharged with this power.
-        If power == 0, then stop charging or discharging component.
-
-
-        Args:
-            component_id: id of the component to set power.
-            power_w: power to set for the component.
-        """
-
-    @abstractmethod
-    async def set_bounds(self, component_id: int, lower: float, upper: float) -> None:
-        """Send `SetBoundsParam`s received from a channel to the Microgrid service.
-
-        Args:
-            component_id: ID of the component to set bounds for.
-            lower: Lower bound to be set for the component.
-            upper: Upper bound to be set for the component.
-        """
-
-
 # pylint: disable=no-member
 
 
-class MicrogridGrpcClient(MicrogridApiClient):
+class MicrogridGrpcClient:
     """Microgrid API client implementation using gRPC as the underlying protocol."""
 
     def __init__(
