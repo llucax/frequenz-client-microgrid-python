@@ -35,7 +35,7 @@ class InverterType(ComponentType):
     """Hybrid inverter."""
 
 
-def _component_type_from_protobuf(
+def component_type_from_protobuf(
     component_category: PbComponentCategory.ValueType,
     component_metadata: PbInverterMetadata,
 ) -> ComponentType | None:
@@ -87,7 +87,7 @@ class ComponentCategory(Enum):
     """CHP component."""
 
 
-def _component_category_from_protobuf(
+def component_category_from_protobuf(
     component_category: PbComponentCategory.ValueType,
 ) -> ComponentCategory:
     """Convert a protobuf ComponentCategory message to ComponentCategory enum.
@@ -135,10 +135,21 @@ class GridMetadata(ComponentMetadata):
     """Metadata for a grid connection point."""
 
 
-def _component_metadata_from_protobuf(
+def component_metadata_from_protobuf(
     component_category: PbComponentCategory.ValueType,
     component_metadata: PbGridMetadata,
 ) -> GridMetadata | None:
+    """Convert a protobuf GridMetadata message to GridMetadata class.
+
+    For internal-only use by the `microgrid` package.
+
+    Args:
+        component_category: category the type belongs to.
+        component_metadata: protobuf metadata to fetch type from.
+
+    Returns:
+        GridMetadata instance corresponding to the protobuf message.
+    """
     if component_category == PbComponentCategory.COMPONENT_CATEGORY_GRID:
         max_current = component_metadata.rated_fuse_current
         fuse = Fuse(max_current)

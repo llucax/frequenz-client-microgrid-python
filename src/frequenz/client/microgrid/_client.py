@@ -35,9 +35,9 @@ from google.protobuf.empty_pb2 import Empty  # pylint: disable=no-name-in-module
 from ._component import (
     Component,
     ComponentCategory,
-    _component_category_from_protobuf,
-    _component_metadata_from_protobuf,
-    _component_type_from_protobuf,
+    component_category_from_protobuf,
+    component_metadata_from_protobuf,
+    component_type_from_protobuf,
 )
 from ._component_data import (
     BatteryData,
@@ -132,9 +132,9 @@ class ApiClient:
         result: Iterable[Component] = map(
             lambda c: Component(
                 c.id,
-                _component_category_from_protobuf(c.category),
-                _component_type_from_protobuf(c.category, c.inverter),
-                _component_metadata_from_protobuf(c.category, c.grid),
+                component_category_from_protobuf(c.category),
+                component_type_from_protobuf(c.category, c.inverter),
+                component_metadata_from_protobuf(c.category, c.grid),
             ),
             components_only,
         )
