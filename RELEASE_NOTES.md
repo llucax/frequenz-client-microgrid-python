@@ -2,7 +2,7 @@
 
 ## Summary
 
-<!-- Here goes a general summary of what this release is about -->
+Code import from the [SDK v1.0.0-rc5](https://github.com/frequenz-floss/frequenz-sdk-python/releases/tag/v1.0.0-rc5) release.
 
 ## Upgrading
 
