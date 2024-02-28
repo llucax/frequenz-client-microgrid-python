@@ -7,7 +7,7 @@ import asyncio
 import contextlib
 from collections.abc import AsyncIterator
 
-import grpc
+import grpc.aio
 import pytest
 
 # pylint: disable=no-name-in-module

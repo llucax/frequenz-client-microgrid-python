@@ -14,7 +14,7 @@ import asyncio
 from collections.abc import Iterable, Iterator
 from concurrent import futures
 
-import grpc
+import grpc.aio
 
 # pylint: disable=no-name-in-module
 from frequenz.api.common.components_pb2 import (

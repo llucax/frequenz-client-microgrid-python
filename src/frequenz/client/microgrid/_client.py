@@ -8,7 +8,7 @@ import logging
 from collections.abc import Awaitable, Callable, Iterable
 from typing import Any, TypeVar, cast
 
-import grpc
+import grpc.aio
 
 # pylint: disable=no-name-in-module
 from frequenz.api.common.components_pb2 import ComponentCategory as PbComponentCategory
