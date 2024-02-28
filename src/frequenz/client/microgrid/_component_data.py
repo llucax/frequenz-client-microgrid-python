@@ -2,11 +2,11 @@
 # Copyright © 2022 Frequenz Energy-as-a-Service GmbH
 
 """Component data types for data coming from a microgrid."""
-from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
+from typing import Self
 
 # pylint: disable=no-name-in-module
 from frequenz.api.microgrid.battery_pb2 import ComponentState as PbBatteryComponentState
@@ -54,7 +54,7 @@ class ComponentData(ABC):
 
     @classmethod
     @abstractmethod
-    def from_proto(cls, raw: PbComponentData) -> ComponentData:
+    def from_proto(cls, raw: PbComponentData) -> Self:
         """Create ComponentData from a protobuf message.
 
         Args:
@@ -93,7 +93,7 @@ class MeterData(ComponentData):
     """The AC power frequency in Hertz (Hz)."""
 
     @classmethod
-    def from_proto(cls, raw: PbComponentData) -> MeterData:
+    def from_proto(cls, raw: PbComponentData) -> Self:
         """Create MeterData from a protobuf message.
 
         Args:
@@ -206,7 +206,7 @@ class BatteryData(ComponentData):  # pylint: disable=too-many-instance-attribute
     """List of errors in protobuf struct."""
 
     @classmethod
-    def from_proto(cls, raw: PbComponentData) -> BatteryData:
+    def from_proto(cls, raw: PbComponentData) -> Self:
         """Create BatteryData from a protobuf message.
 
         Args:
@@ -316,7 +316,7 @@ class InverterData(ComponentData):  # pylint: disable=too-many-instance-attribut
     """List of errors from the component."""
 
     @classmethod
-    def from_proto(cls, raw: PbComponentData) -> InverterData:
+    def from_proto(cls, raw: PbComponentData) -> Self:
         """Create InverterData from a protobuf message.
 
         Args:
@@ -436,7 +436,7 @@ class EVChargerData(ComponentData):  # pylint: disable=too-many-instance-attribu
     """The state of the ev charger."""
 
     @classmethod
-    def from_proto(cls, raw: PbComponentData) -> EVChargerData:
+    def from_proto(cls, raw: PbComponentData) -> Self:
         """Create EVChargerData from a protobuf message.
 
         Args:

@@ -2,9 +2,9 @@
 # Copyright © 2022 Frequenz Energy-as-a-Service GmbH
 
 """Defines states of components that can be used in a microgrid."""
-from __future__ import annotations
 
 from enum import Enum
+from typing import Self
 
 # pylint: disable=no-name-in-module
 from frequenz.api.microgrid.ev_charger_pb2 import CableState as PbCableState
@@ -35,7 +35,7 @@ class EVChargerCableState(Enum):
     """The cable is plugged into the EV and locked."""
 
     @classmethod
-    def from_pb(cls, evc_state: PbCableState.ValueType) -> EVChargerCableState:
+    def from_pb(cls, evc_state: PbCableState.ValueType) -> Self:
         """Convert a protobuf CableState value to EVChargerCableState enum.
 
         Args:
@@ -45,9 +45,9 @@ class EVChargerCableState(Enum):
             Enum value corresponding to the protobuf message.
         """
         if not any(t.value == evc_state for t in EVChargerCableState):
-            return cls.UNSPECIFIED
+            return cls(cls.UNSPECIFIED)
 
-        return EVChargerCableState(evc_state)
+        return cls(evc_state)
 
 
 class EVChargerComponentState(Enum):
@@ -81,7 +81,7 @@ class EVChargerComponentState(Enum):
     """The component is interrupted."""
 
     @classmethod
-    def from_pb(cls, evc_state: PbComponentState.ValueType) -> EVChargerComponentState:
+    def from_pb(cls, evc_state: PbComponentState.ValueType) -> Self:
         """Convert a protobuf ComponentState value to EVChargerComponentState enum.
 
         Args:
@@ -91,6 +91,6 @@ class EVChargerComponentState(Enum):
             Enum value corresponding to the protobuf message.
         """
         if not any(t.value == evc_state for t in EVChargerComponentState):
-            return cls.UNSPECIFIED
+            return cls(cls.UNSPECIFIED)
 
-        return EVChargerComponentState(evc_state)
+        return cls(evc_state)
