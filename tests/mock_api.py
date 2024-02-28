@@ -152,8 +152,7 @@ class MockMicrogridServicer(  # pylint: disable=too-many-public-methods
         """Drop all received bounds."""
         self._bounds.clear()
 
-    # pylint: disable=unused-argument
-    def ListComponents(
+    def ListComponents(  # pylint: disable=unused-argument
         self,
         request: ComponentFilter,
         context: grpc.ServicerContext,
