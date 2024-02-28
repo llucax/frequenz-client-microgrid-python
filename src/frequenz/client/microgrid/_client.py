@@ -39,7 +39,13 @@ from ._component import (
     _component_metadata_from_protobuf,
     _component_type_from_protobuf,
 )
-from ._component_data import BatteryData, EVChargerData, InverterData, MeterData
+from ._component_data import (
+    BatteryData,
+    ComponentData,
+    EVChargerData,
+    InverterData,
+    MeterData,
+)
 from ._connection import Connection
 from ._constants import RECEIVER_MAX_SIZE
 from ._retry import LinearBackoff, RetryStrategy
