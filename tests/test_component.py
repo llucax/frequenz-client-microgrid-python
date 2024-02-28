@@ -3,64 +3,59 @@
 
 """Tests for the microgrid component wrapper."""
 
-import frequenz.api.common.components_pb2 as components_pb
-import frequenz.sdk.microgrid.component._component as cp
 import pytest
 
-# pylint:disable=no-member
+# pylint: disable=no-name-in-module
+from frequenz.api.common.components_pb2 import ComponentCategory
+
+# pylint: enable=no-name-in-module
+import frequenz.client.microgrid._component as cp
 
 
-# pylint: disable=protected-access
 def test_component_category_from_protobuf() -> None:
     """Test the creating component category from protobuf."""
     assert (
-        cp._component_category_from_protobuf(
-            components_pb.ComponentCategory.COMPONENT_CATEGORY_UNSPECIFIED
+        cp.component_category_from_protobuf(
+            ComponentCategory.COMPONENT_CATEGORY_UNSPECIFIED
         )
         == cp.ComponentCategory.NONE
     )
 
     assert (
-        cp._component_category_from_protobuf(
-            components_pb.ComponentCategory.COMPONENT_CATEGORY_GRID
-        )
+        cp.component_category_from_protobuf(ComponentCategory.COMPONENT_CATEGORY_GRID)
         == cp.ComponentCategory.GRID
     )
 
     assert (
-        cp._component_category_from_protobuf(
-            components_pb.ComponentCategory.COMPONENT_CATEGORY_METER
-        )
+        cp.component_category_from_protobuf(ComponentCategory.COMPONENT_CATEGORY_METER)
         == cp.ComponentCategory.METER
     )
 
     assert (
-        cp._component_category_from_protobuf(
-            components_pb.ComponentCategory.COMPONENT_CATEGORY_INVERTER
+        cp.component_category_from_protobuf(
+            ComponentCategory.COMPONENT_CATEGORY_INVERTER
         )
         == cp.ComponentCategory.INVERTER
     )
 
     assert (
-        cp._component_category_from_protobuf(
-            components_pb.ComponentCategory.COMPONENT_CATEGORY_BATTERY
+        cp.component_category_from_protobuf(
+            ComponentCategory.COMPONENT_CATEGORY_BATTERY
         )
         == cp.ComponentCategory.BATTERY
     )
 
     assert (
-        cp._component_category_from_protobuf(
-            components_pb.ComponentCategory.COMPONENT_CATEGORY_EV_CHARGER
+        cp.component_category_from_protobuf(
+            ComponentCategory.COMPONENT_CATEGORY_EV_CHARGER
         )
         == cp.ComponentCategory.EV_CHARGER
     )
 
-    assert cp._component_category_from_protobuf(666) == cp.ComponentCategory.NONE  # type: ignore
+    assert cp.component_category_from_protobuf(666) == cp.ComponentCategory.NONE  # type: ignore
 
     with pytest.raises(ValueError):
-        cp._component_category_from_protobuf(
-            components_pb.ComponentCategory.COMPONENT_CATEGORY_SENSOR
-        )
+        cp.component_category_from_protobuf(ComponentCategory.COMPONENT_CATEGORY_SENSOR)
 
 
 # pylint: disable=invalid-name

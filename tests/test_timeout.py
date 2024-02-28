@@ -6,7 +6,7 @@ import time
 from typing import Any
 from unittest.mock import patch
 
-import grpc
+import grpc.aio
 import pytest
 
 # pylint: disable=no-name-in-module
@@ -17,11 +17,12 @@ from frequenz.api.microgrid.microgrid_pb2 import (
     ConnectionList,
     PowerLevelParam,
 )
-from frequenz.sdk.microgrid.client import MicrogridGrpcClient
 from google.protobuf.empty_pb2 import Empty
 
 # pylint: enable=no-name-in-module
 from pytest_mock import MockerFixture
+
+from frequenz.client.microgrid import ApiClient
 
 from .mock_api import MockGrpcServer, MockMicrogridServicer
 
@@ -53,7 +54,7 @@ async def test_components_timeout(mocker: MockerFixture) -> None:
 
     target = "[::]:57809"
     grpc_channel = grpc.aio.insecure_channel(target)
-    client = MicrogridGrpcClient(grpc_channel=grpc_channel, target=target)
+    client = ApiClient(grpc_channel=grpc_channel, target=target)
 
     with pytest.raises(grpc.aio.AioRpcError) as err_ctx:
         _ = await client.components()
@@ -80,7 +81,7 @@ async def test_connections_timeout(mocker: MockerFixture) -> None:
 
     target = "[::]:57809"
     grpc_channel = grpc.aio.insecure_channel(target)
-    client = MicrogridGrpcClient(grpc_channel=grpc_channel, target=target)
+    client = ApiClient(grpc_channel=grpc_channel, target=target)
 
     with pytest.raises(grpc.aio.AioRpcError) as err_ctx:
         _ = await client.connections()
@@ -107,7 +108,7 @@ async def test_set_power_timeout(mocker: MockerFixture) -> None:
 
     target = "[::]:57809"
     grpc_channel = grpc.aio.insecure_channel(target)
-    client = MicrogridGrpcClient(grpc_channel=grpc_channel, target=target)
+    client = ApiClient(grpc_channel=grpc_channel, target=target)
 
     power_values = [-100, 100]
     for power_w in power_values:

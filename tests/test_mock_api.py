@@ -8,7 +8,7 @@
 
 from unittest.mock import Mock
 
-import grpc
+import grpc.aio
 from frequenz.api.common.components_pb2 import ComponentCategory
 from frequenz.api.microgrid.microgrid_pb2 import (
     Component,
