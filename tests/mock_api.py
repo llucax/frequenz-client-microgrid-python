@@ -160,12 +160,6 @@ class MockMicrogridServicer(  # pylint: disable=too-many-public-methods
         """List components."""
         return ComponentList(components=self._components)
 
-    def ListAllComponents(
-        self, request: Empty, context: grpc.ServicerContext
-    ) -> ComponentList:
-        """Return a list of all components."""
-        return ComponentList(components=self._components)
-
     def ListConnections(
         self, request: ConnectionFilter, context: grpc.ServicerContext
     ) -> ConnectionList:
