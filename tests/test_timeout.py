@@ -3,7 +3,7 @@
 
 """Benchmark for microgrid data."""
 import time
-from typing import Any
+from typing import Any, Iterator
 from unittest.mock import patch
 
 import grpc.aio
@@ -26,18 +26,25 @@ from frequenz.client.microgrid import ApiClient
 
 from .mock_api import MockGrpcServer, MockMicrogridServicer
 
-# Timeout applied to all gRPC calls under test. It is expected after that the gRPC
-# calls will raise an AioRpcError with status code equal to DEADLINE_EXCEEDED.
-GRPC_CALL_TIMEOUT: float = 0.1
-
 # How much late a response to a gRPC call should be. It is used to trigger a timeout
 # error and needs to be greater than `GRPC_CALL_TIMEOUT`.
 GRPC_SERVER_DELAY: float = 0.3
 
 
-@patch(
-    "frequenz.sdk.microgrid.client._client.DEFAULT_GRPC_CALL_TIMEOUT", GRPC_CALL_TIMEOUT
-)
+@pytest.fixture(autouse=True)
+def fake_grpc_call_timeout() -> Iterator[float]:
+    """Patch the default gRPC call timeout."""
+    # Timeout applied to all gRPC calls under test. It is expected after that the gRPC
+    # calls will raise an AioRpcError with status code equal to DEADLINE_EXCEEDED.
+    grpc_call_timeout: float = 0.1
+
+    with patch(
+        "frequenz.client.microgrid._client.DEFAULT_GRPC_CALL_TIMEOUT",
+        grpc_call_timeout,
+    ):
+        yield grpc_call_timeout
+
+
 async def test_components_timeout(mocker: MockerFixture) -> None:
     """Test if the components() method properly raises AioRpcError."""
     servicer = MockMicrogridServicer()
@@ -62,9 +69,6 @@ async def test_components_timeout(mocker: MockerFixture) -> None:
     assert await server.graceful_shutdown()
 
 
-@patch(
-    "frequenz.sdk.microgrid.client._client.DEFAULT_GRPC_CALL_TIMEOUT", GRPC_CALL_TIMEOUT
-)
 async def test_connections_timeout(mocker: MockerFixture) -> None:
     """Test if the connections() method properly raises AioRpcError."""
     servicer = MockMicrogridServicer()
@@ -89,9 +93,6 @@ async def test_connections_timeout(mocker: MockerFixture) -> None:
     assert await server.graceful_shutdown()
 
 
-@patch(
-    "frequenz.sdk.microgrid.client._client.DEFAULT_GRPC_CALL_TIMEOUT", GRPC_CALL_TIMEOUT
-)
 async def test_set_power_timeout(mocker: MockerFixture) -> None:
     """Test if the set_power() method properly raises AioRpcError."""
     servicer = MockMicrogridServicer()
