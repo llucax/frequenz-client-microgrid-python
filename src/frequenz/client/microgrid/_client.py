@@ -30,6 +30,7 @@ from frequenz.api.microgrid.microgrid_pb2_grpc import MicrogridStub
 
 # pylint: enable=no-name-in-module
 from frequenz.channels import Broadcast, Receiver, Sender
+from frequenz.client.base.retry_strategy import LinearBackoff, RetryStrategy
 from google.protobuf.empty_pb2 import Empty  # pylint: disable=no-name-in-module
 
 from ._component import (
@@ -49,7 +50,6 @@ from ._component_data import (
 from ._connection import Connection
 from ._constants import RECEIVER_MAX_SIZE
 from ._metadata import Location, Metadata
-from ._retry import LinearBackoff, RetryStrategy
 
 DEFAULT_GRPC_CALL_TIMEOUT = 60.0
 """The default timeout for gRPC calls made by this client (in seconds)."""
