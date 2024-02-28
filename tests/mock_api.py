@@ -8,8 +8,6 @@ check integration with the API.  Note that this should exclude almost
 all framework code, as API integration should be highly encapsulated.
 """
 
-from __future__ import annotations
-
 import asyncio
 from collections.abc import Iterable, Iterator
 from concurrent import futures

@@ -2,7 +2,6 @@
 # Copyright © 2022 Frequenz Energy-as-a-Service GmbH
 
 """Defines the components that can be used in a microgrid."""
-from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
