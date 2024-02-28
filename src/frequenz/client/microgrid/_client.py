@@ -48,17 +48,8 @@ from .metadata import Location, Metadata
 DEFAULT_GRPC_CALL_TIMEOUT = 60.0
 """The default timeout for gRPC calls made by this client (in seconds)."""
 
-# A generic type for representing various component data types, used in the
-# generic function `MicrogridGrpcClient._component_data_task` that fetches
-# component data and transforms it into one of the specific types.
-_GenericComponentData = TypeVar(
-    "_GenericComponentData",
-    MeterData,
-    BatteryData,
-    InverterData,
-    EVChargerData,
-)
-"""Type variable for representing various component data types."""
+_ComponentDataT = TypeVar("_ComponentDataT", bound=ComponentData)
+"""Type variable resolving to any ComponentData sub-class."""
 
 _logger = logging.getLogger(__name__)
 
@@ -240,8 +231,8 @@ class ApiClient:
     async def _component_data_task(
         self,
         component_id: int,
-        transform: Callable[[PbComponentData], _GenericComponentData],
-        sender: Sender[_GenericComponentData],
+        transform: Callable[[PbComponentData], _ComponentDataT],
+        sender: Sender[_ComponentDataT],
     ) -> None:
         """Read data from the microgrid API and send to a channel.
 
@@ -294,8 +285,8 @@ class ApiClient:
     def _get_component_data_channel(
         self,
         component_id: int,
-        transform: Callable[[PbComponentData], _GenericComponentData],
-    ) -> Broadcast[_GenericComponentData]:
+        transform: Callable[[PbComponentData], _ComponentDataT],
+    ) -> Broadcast[_ComponentDataT]:
         """Return the broadcast channel for a given component_id.
 
         If a broadcast channel for the given component_id doesn't exist, create
@@ -313,7 +304,7 @@ class ApiClient:
         if component_id in self._component_streams:
             return self._component_streams[component_id]
         task_name = f"raw-component-data-{component_id}"
-        chan = Broadcast[_GenericComponentData](task_name, resend_latest=True)
+        chan = Broadcast[_ComponentDataT](task_name, resend_latest=True)
         self._component_streams[component_id] = chan
 
         self._streaming_tasks[component_id] = asyncio.create_task(
