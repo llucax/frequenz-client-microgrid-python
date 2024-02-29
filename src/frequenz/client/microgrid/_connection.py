@@ -3,10 +3,12 @@
 
 """Defines the connections between microgrid components."""
 
-from typing import NamedTuple
+
+from dataclasses import dataclass
 
 
-class Connection(NamedTuple):
+@dataclass(frozen=True)
+class Connection:
     """Metadata for a connection between microgrid components."""
 
     start: int

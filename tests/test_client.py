@@ -7,13 +7,20 @@ import asyncio
 import contextlib
 from collections.abc import AsyncIterator
 
-import grpc
+import grpc.aio
 import pytest
-from frequenz.api.common import components_pb2 as components_pb
-from frequenz.api.common import metrics_pb2 as metrics_pb
-from frequenz.api.microgrid import microgrid_pb2 as microgrid_pb
-from google.protobuf.empty_pb2 import Empty  # pylint: disable=no-name-in-module
 
+# pylint: disable=no-name-in-module
+from frequenz.api.common.components_pb2 import ComponentCategory as PbComponentCategory
+from frequenz.api.common.components_pb2 import InverterType as PbInverterType
+from frequenz.api.common.metrics_pb2 import Bounds as PbBounds
+from frequenz.api.microgrid.microgrid_pb2 import ComponentList as PbComponentList
+from frequenz.api.microgrid.microgrid_pb2 import ConnectionFilter as PbConnectionFilter
+from frequenz.api.microgrid.microgrid_pb2 import ConnectionList as PbConnectionList
+from frequenz.api.microgrid.microgrid_pb2 import SetBoundsParam as PbSetBoundsParam
+from google.protobuf.empty_pb2 import Empty
+
+# pylint: enable=no-name-in-module
 from frequenz.client.microgrid import _client as client
 from frequenz.client.microgrid._component import (
     Component,
@@ -33,8 +40,8 @@ from frequenz.client.microgrid._retry import LinearBackoff
 
 from . import mock_api
 
-# pylint: disable=missing-function-docstring,use-implicit-booleaness-not-comparison
-# pylint: disable=missing-class-docstring,no-member
+# pylint: disable=missing-function-docstring
+# pylint: disable=missing-class-docstring
 
 
 # This incrementing port is a hack to avoid the inherent flakiness of the approach of
@@ -49,14 +56,14 @@ _CURRENT_PORT: int = 57897
 @contextlib.asynccontextmanager
 async def _gprc_server(
     servicer: mock_api.MockMicrogridServicer | None = None,
-) -> AsyncIterator[tuple[mock_api.MockMicrogridServicer, client.MicrogridApiClient]]:
+) -> AsyncIterator[tuple[mock_api.MockMicrogridServicer, client.ApiClient]]:
     global _CURRENT_PORT  # pylint: disable=global-statement
     port = _CURRENT_PORT
     _CURRENT_PORT += 1
     if servicer is None:
         servicer = mock_api.MockMicrogridServicer()
     server = mock_api.MockGrpcServer(servicer, port=port)
-    microgrid = client.MicrogridGrpcClient(
+    microgrid = client.ApiClient(
         grpc.aio.insecure_channel(f"[::]:{port}"),
         f"[::]:{port}",
         retry_spec=LinearBackoff(interval=0.0, jitter=0.05),
@@ -76,24 +83,18 @@ class TestMicrogridGrpcClient:
         async with _gprc_server() as (servicer, microgrid):
             assert set(await microgrid.components()) == set()
 
-            servicer.add_component(
-                0, components_pb.ComponentCategory.COMPONENT_CATEGORY_METER
-            )
+            servicer.add_component(0, PbComponentCategory.COMPONENT_CATEGORY_METER)
             assert set(await microgrid.components()) == {
                 Component(0, ComponentCategory.METER)
             }
 
-            servicer.add_component(
-                0, components_pb.ComponentCategory.COMPONENT_CATEGORY_BATTERY
-            )
+            servicer.add_component(0, PbComponentCategory.COMPONENT_CATEGORY_BATTERY)
             assert set(await microgrid.components()) == {
                 Component(0, ComponentCategory.METER),
                 Component(0, ComponentCategory.BATTERY),
             }
 
-            servicer.add_component(
-                0, components_pb.ComponentCategory.COMPONENT_CATEGORY_METER
-            )
+            servicer.add_component(0, PbComponentCategory.COMPONENT_CATEGORY_METER)
             assert set(await microgrid.components()) == {
                 Component(0, ComponentCategory.METER),
                 Component(0, ComponentCategory.BATTERY),
@@ -101,9 +102,7 @@ class TestMicrogridGrpcClient:
             }
 
             # sensors are not counted as components by the API client
-            servicer.add_component(
-                1, components_pb.ComponentCategory.COMPONENT_CATEGORY_SENSOR
-            )
+            servicer.add_component(1, PbComponentCategory.COMPONENT_CATEGORY_SENSOR)
             assert set(await microgrid.components()) == {
                 Component(0, ComponentCategory.METER),
                 Component(0, ComponentCategory.BATTERY),
@@ -112,10 +111,10 @@ class TestMicrogridGrpcClient:
 
             servicer.set_components(
                 [
-                    (9, components_pb.ComponentCategory.COMPONENT_CATEGORY_METER),
-                    (99, components_pb.ComponentCategory.COMPONENT_CATEGORY_INVERTER),
-                    (666, components_pb.ComponentCategory.COMPONENT_CATEGORY_SENSOR),
-                    (999, components_pb.ComponentCategory.COMPONENT_CATEGORY_BATTERY),
+                    (9, PbComponentCategory.COMPONENT_CATEGORY_METER),
+                    (99, PbComponentCategory.COMPONENT_CATEGORY_INVERTER),
+                    (666, PbComponentCategory.COMPONENT_CATEGORY_SENSOR),
+                    (999, PbComponentCategory.COMPONENT_CATEGORY_BATTERY),
                 ]
             )
             assert set(await microgrid.components()) == {
@@ -126,25 +125,25 @@ class TestMicrogridGrpcClient:
 
             servicer.set_components(
                 [
-                    (99, components_pb.ComponentCategory.COMPONENT_CATEGORY_SENSOR),
+                    (99, PbComponentCategory.COMPONENT_CATEGORY_SENSOR),
                     (
                         100,
-                        components_pb.ComponentCategory.COMPONENT_CATEGORY_UNSPECIFIED,
+                        PbComponentCategory.COMPONENT_CATEGORY_UNSPECIFIED,
                     ),
-                    (104, components_pb.ComponentCategory.COMPONENT_CATEGORY_METER),
-                    (105, components_pb.ComponentCategory.COMPONENT_CATEGORY_INVERTER),
-                    (106, components_pb.ComponentCategory.COMPONENT_CATEGORY_BATTERY),
+                    (104, PbComponentCategory.COMPONENT_CATEGORY_METER),
+                    (105, PbComponentCategory.COMPONENT_CATEGORY_INVERTER),
+                    (106, PbComponentCategory.COMPONENT_CATEGORY_BATTERY),
                     (
                         107,
-                        components_pb.ComponentCategory.COMPONENT_CATEGORY_EV_CHARGER,
+                        PbComponentCategory.COMPONENT_CATEGORY_EV_CHARGER,
                     ),
-                    (999, components_pb.ComponentCategory.COMPONENT_CATEGORY_SENSOR),
+                    (999, PbComponentCategory.COMPONENT_CATEGORY_SENSOR),
                 ]
             )
 
             servicer.add_component(
                 101,
-                components_pb.ComponentCategory.COMPONENT_CATEGORY_GRID,
+                PbComponentCategory.COMPONENT_CATEGORY_GRID,
                 123.0,
             )
 
@@ -167,16 +166,16 @@ class TestMicrogridGrpcClient:
 
             servicer.set_components(
                 [
-                    (9, components_pb.ComponentCategory.COMPONENT_CATEGORY_METER),
-                    (666, components_pb.ComponentCategory.COMPONENT_CATEGORY_SENSOR),
-                    (999, components_pb.ComponentCategory.COMPONENT_CATEGORY_BATTERY),
+                    (9, PbComponentCategory.COMPONENT_CATEGORY_METER),
+                    (666, PbComponentCategory.COMPONENT_CATEGORY_SENSOR),
+                    (999, PbComponentCategory.COMPONENT_CATEGORY_BATTERY),
                 ]
             )
             servicer.add_component(
                 99,
-                components_pb.ComponentCategory.COMPONENT_CATEGORY_INVERTER,
+                PbComponentCategory.COMPONENT_CATEGORY_INVERTER,
                 None,
-                components_pb.InverterType.INVERTER_TYPE_BATTERY,
+                PbInverterType.INVERTER_TYPE_BATTERY,
             )
 
             assert set(await microgrid.components()) == {
@@ -196,11 +195,11 @@ class TestMicrogridGrpcClient:
             servicer.add_connection(7, 9)
             servicer.add_component(
                 7,
-                component_category=components_pb.ComponentCategory.COMPONENT_CATEGORY_BATTERY,
+                component_category=PbComponentCategory.COMPONENT_CATEGORY_BATTERY,
             )
             servicer.add_component(
                 9,
-                component_category=components_pb.ComponentCategory.COMPONENT_CATEGORY_INVERTER,
+                component_category=PbComponentCategory.COMPONENT_CATEGORY_INVERTER,
             )
             assert set(await microgrid.connections()) == {
                 Connection(0, 0),
@@ -218,7 +217,7 @@ class TestMicrogridGrpcClient:
             for component_id in [999, 99, 19, 909, 101, 91]:
                 servicer.add_component(
                     component_id,
-                    components_pb.ComponentCategory.COMPONENT_CATEGORY_BATTERY,
+                    PbComponentCategory.COMPONENT_CATEGORY_BATTERY,
                 )
 
             assert set(await microgrid.connections()) == {
@@ -231,7 +230,7 @@ class TestMicrogridGrpcClient:
             for component_id in [1, 2, 3, 4, 5, 6, 7, 8]:
                 servicer.add_component(
                     component_id,
-                    components_pb.ComponentCategory.COMPONENT_CATEGORY_BATTERY,
+                    PbComponentCategory.COMPONENT_CATEGORY_BATTERY,
                 )
 
             servicer.set_connections(
@@ -338,23 +337,23 @@ class TestMicrogridGrpcClient:
             # pylint: disable=unused-argument,invalid-name
             def ListConnections(
                 self,
-                request: microgrid_pb.ConnectionFilter,
+                request: PbConnectionFilter,
                 context: grpc.ServicerContext,
-            ) -> microgrid_pb.ConnectionList:
-                """Ignores supplied `ConnectionFilter`."""
-                return microgrid_pb.ConnectionList(connections=self._connections)
+            ) -> PbConnectionList:
+                """Ignores supplied `PbConnectionFilter`."""
+                return PbConnectionList(connections=self._connections)
 
             def ListAllComponents(
                 self, request: Empty, context: grpc.ServicerContext
-            ) -> microgrid_pb.ComponentList:
-                return microgrid_pb.ComponentList(components=self._components)
+            ) -> PbComponentList:
+                return PbComponentList(components=self._components)
 
         async with _gprc_server(BadServicer()) as (servicer, microgrid):
-            assert list(await microgrid.connections()) == []
+            assert not list(await microgrid.connections())
             for component_id in [1, 2, 3, 4, 5, 6, 7, 8, 9]:
                 servicer.add_component(
                     component_id,
-                    components_pb.ComponentCategory.COMPONENT_CATEGORY_BATTERY,
+                    PbComponentCategory.COMPONENT_CATEGORY_BATTERY,
                 )
             servicer.set_connections(
                 [
@@ -396,12 +395,8 @@ class TestMicrogridGrpcClient:
     async def test_meter_data(self) -> None:
         """Test the meter_data() method."""
         async with _gprc_server() as (servicer, microgrid):
-            servicer.add_component(
-                83, components_pb.ComponentCategory.COMPONENT_CATEGORY_METER
-            )
-            servicer.add_component(
-                38, components_pb.ComponentCategory.COMPONENT_CATEGORY_BATTERY
-            )
+            servicer.add_component(83, PbComponentCategory.COMPONENT_CATEGORY_METER)
+            servicer.add_component(38, PbComponentCategory.COMPONENT_CATEGORY_BATTERY)
 
             with pytest.raises(ValueError):
                 # should raise a ValueError for missing component_id
@@ -420,12 +415,8 @@ class TestMicrogridGrpcClient:
     async def test_battery_data(self) -> None:
         """Test the battery_data() method."""
         async with _gprc_server() as (servicer, microgrid):
-            servicer.add_component(
-                83, components_pb.ComponentCategory.COMPONENT_CATEGORY_BATTERY
-            )
-            servicer.add_component(
-                38, components_pb.ComponentCategory.COMPONENT_CATEGORY_INVERTER
-            )
+            servicer.add_component(83, PbComponentCategory.COMPONENT_CATEGORY_BATTERY)
+            servicer.add_component(38, PbComponentCategory.COMPONENT_CATEGORY_INVERTER)
 
             with pytest.raises(ValueError):
                 # should raise a ValueError for missing component_id
@@ -444,12 +435,8 @@ class TestMicrogridGrpcClient:
     async def test_inverter_data(self) -> None:
         """Test the inverter_data() method."""
         async with _gprc_server() as (servicer, microgrid):
-            servicer.add_component(
-                83, components_pb.ComponentCategory.COMPONENT_CATEGORY_INVERTER
-            )
-            servicer.add_component(
-                38, components_pb.ComponentCategory.COMPONENT_CATEGORY_BATTERY
-            )
+            servicer.add_component(83, PbComponentCategory.COMPONENT_CATEGORY_INVERTER)
+            servicer.add_component(38, PbComponentCategory.COMPONENT_CATEGORY_BATTERY)
 
             with pytest.raises(ValueError):
                 # should raise a ValueError for missing component_id
@@ -469,11 +456,9 @@ class TestMicrogridGrpcClient:
         """Test the ev_charger_data() method."""
         async with _gprc_server() as (servicer, microgrid):
             servicer.add_component(
-                83, components_pb.ComponentCategory.COMPONENT_CATEGORY_EV_CHARGER
+                83, PbComponentCategory.COMPONENT_CATEGORY_EV_CHARGER
             )
-            servicer.add_component(
-                38, components_pb.ComponentCategory.COMPONENT_CATEGORY_BATTERY
-            )
+            servicer.add_component(38, PbComponentCategory.COMPONENT_CATEGORY_BATTERY)
 
             with pytest.raises(ValueError):
                 # should raise a ValueError for missing component_id
@@ -492,9 +477,7 @@ class TestMicrogridGrpcClient:
     async def test_charge(self) -> None:
         """Check if charge is able to charge component."""
         async with _gprc_server() as (servicer, microgrid):
-            servicer.add_component(
-                83, components_pb.ComponentCategory.COMPONENT_CATEGORY_METER
-            )
+            servicer.add_component(83, PbComponentCategory.COMPONENT_CATEGORY_METER)
 
             await microgrid.set_power(component_id=83, power_w=12)
 
@@ -505,9 +488,7 @@ class TestMicrogridGrpcClient:
     async def test_discharge(self) -> None:
         """Check if discharge is able to discharge component."""
         async with _gprc_server() as (servicer, microgrid):
-            servicer.add_component(
-                73, components_pb.ComponentCategory.COMPONENT_CATEGORY_METER
-            )
+            servicer.add_component(73, PbComponentCategory.COMPONENT_CATEGORY_METER)
 
             await microgrid.set_power(component_id=73, power_w=-15)
 
@@ -518,18 +499,16 @@ class TestMicrogridGrpcClient:
     async def test_set_bounds(self) -> None:
         """Check if set_bounds is able to set bounds for component."""
         async with _gprc_server() as (servicer, microgrid):
-            servicer.add_component(
-                38, components_pb.ComponentCategory.COMPONENT_CATEGORY_INVERTER
-            )
+            servicer.add_component(38, PbComponentCategory.COMPONENT_CATEGORY_INVERTER)
 
             num_calls = 4
 
-            target_metric = microgrid_pb.SetBoundsParam.TargetMetric
+            target_metric = PbSetBoundsParam.TargetMetric
             expected_bounds = [
-                microgrid_pb.SetBoundsParam(
+                PbSetBoundsParam(
                     component_id=comp_id,
                     target_metric=target_metric.TARGET_METRIC_POWER_ACTIVE,
-                    bounds=metrics_pb.Bounds(lower=-10, upper=2),
+                    bounds=PbBounds(lower=-10, upper=2),
                 )
                 for comp_id in range(num_calls)
             ]
@@ -540,8 +519,8 @@ class TestMicrogridGrpcClient:
         assert len(expected_bounds) == len(servicer.get_bounds())
 
         def sort_key(
-            bound: microgrid_pb.SetBoundsParam,
-        ) -> microgrid_pb.SetBoundsParam.TargetMetric.ValueType:
+            bound: PbSetBoundsParam,
+        ) -> PbSetBoundsParam.TargetMetric.ValueType:
             return bound.target_metric
 
         assert sorted(servicer.get_bounds(), key=sort_key) == sorted(

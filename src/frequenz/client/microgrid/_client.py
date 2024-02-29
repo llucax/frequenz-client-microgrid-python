@@ -5,179 +5,62 @@
 
 import asyncio
 import logging
-from abc import ABC, abstractmethod
 from collections.abc import Awaitable, Callable, Iterable
 from typing import Any, TypeVar, cast
 
-import grpc
-from frequenz.api.common import components_pb2 as components_pb
-from frequenz.api.common import metrics_pb2 as metrics_pb
-from frequenz.api.microgrid import microgrid_pb2 as microgrid_pb
+import grpc.aio
+
+# pylint: disable=no-name-in-module
+from frequenz.api.common.components_pb2 import ComponentCategory as PbComponentCategory
+from frequenz.api.common.metrics_pb2 import Bounds as PbBounds
+from frequenz.api.microgrid.microgrid_pb2 import ComponentData as PbComponentData
+from frequenz.api.microgrid.microgrid_pb2 import ComponentFilter as PbComponentFilter
+from frequenz.api.microgrid.microgrid_pb2 import ComponentIdParam as PbComponentIdParam
+from frequenz.api.microgrid.microgrid_pb2 import ComponentList as PbComponentList
+from frequenz.api.microgrid.microgrid_pb2 import ConnectionFilter as PbConnectionFilter
+from frequenz.api.microgrid.microgrid_pb2 import ConnectionList as PbConnectionList
+from frequenz.api.microgrid.microgrid_pb2 import (
+    MicrogridMetadata as PbMicrogridMetadata,
+)
+from frequenz.api.microgrid.microgrid_pb2 import SetBoundsParam as PbSetBoundsParam
+from frequenz.api.microgrid.microgrid_pb2 import (
+    SetPowerActiveParam as PbSetPowerActiveParam,
+)
 from frequenz.api.microgrid.microgrid_pb2_grpc import MicrogridStub
+
+# pylint: enable=no-name-in-module
 from frequenz.channels import Broadcast, Receiver, Sender
 from google.protobuf.empty_pb2 import Empty  # pylint: disable=no-name-in-module
 
 from ._component import (
     Component,
     ComponentCategory,
-    _component_category_from_protobuf,
-    _component_metadata_from_protobuf,
-    _component_type_from_protobuf,
+    component_category_from_protobuf,
+    component_metadata_from_protobuf,
+    component_type_from_protobuf,
 )
-from ._component_data import BatteryData, EVChargerData, InverterData, MeterData
+from ._component_data import (
+    BatteryData,
+    ComponentData,
+    EVChargerData,
+    InverterData,
+    MeterData,
+)
 from ._connection import Connection
 from ._constants import RECEIVER_MAX_SIZE
+from ._metadata import Location, Metadata
 from ._retry import LinearBackoff, RetryStrategy
-from .metadata import Location, Metadata
 
 DEFAULT_GRPC_CALL_TIMEOUT = 60.0
 """The default timeout for gRPC calls made by this client (in seconds)."""
 
-# A generic type for representing various component data types, used in the
-# generic function `MicrogridGrpcClient._component_data_task` that fetches
-# component data and transforms it into one of the specific types.
-_GenericComponentData = TypeVar(
-    "_GenericComponentData",
-    MeterData,
-    BatteryData,
-    InverterData,
-    EVChargerData,
-)
-"""Type variable for representing various component data types."""
+_ComponentDataT = TypeVar("_ComponentDataT", bound=ComponentData)
+"""Type variable resolving to any ComponentData sub-class."""
 
 _logger = logging.getLogger(__name__)
 
 
-class MicrogridApiClient(ABC):
-    """Base interface for microgrid API clients to implement."""
-
-    @abstractmethod
-    async def components(self) -> Iterable[Component]:
-        """Fetch all the components present in the microgrid.
-
-        Returns:
-            Iterator whose elements are all the components in the microgrid.
-        """
-
-    @abstractmethod
-    async def metadata(self) -> Metadata:
-        """Fetch the microgrid metadata.
-
-        Returns:
-            the microgrid metadata.
-        """
-
-    @abstractmethod
-    async def connections(
-        self,
-        starts: set[int] | None = None,
-        ends: set[int] | None = None,
-    ) -> Iterable[Connection]:
-        """Fetch the connections between components in the microgrid.
-
-        Args:
-            starts: if set and non-empty, only include connections whose start
-                value matches one of the provided component IDs
-            ends: if set and non-empty, only include connections whose end value
-                matches one of the provided component IDs
-
-        Returns:
-            Microgrid connections matching the provided start and end filters.
-        """
-
-    @abstractmethod
-    async def meter_data(
-        self,
-        component_id: int,
-        maxsize: int = RECEIVER_MAX_SIZE,
-    ) -> Receiver[MeterData]:
-        """Return a channel receiver that provides a `MeterData` stream.
-
-        Args:
-            component_id: id of the meter to get data for.
-            maxsize: Size of the receiver's buffer.
-
-        Returns:
-            A channel receiver that provides realtime meter data.
-        """
-
-    @abstractmethod
-    async def battery_data(
-        self,
-        component_id: int,
-        maxsize: int = RECEIVER_MAX_SIZE,
-    ) -> Receiver[BatteryData]:
-        """Return a channel receiver that provides a `BatteryData` stream.
-
-        Args:
-            component_id: id of the battery to get data for.
-            maxsize: Size of the receiver's buffer.
-
-        Returns:
-            A channel receiver that provides realtime battery data.
-        """
-
-    @abstractmethod
-    async def inverter_data(
-        self,
-        component_id: int,
-        maxsize: int = RECEIVER_MAX_SIZE,
-    ) -> Receiver[InverterData]:
-        """Return a channel receiver that provides an `InverterData` stream.
-
-        Args:
-            component_id: id of the inverter to get data for.
-            maxsize: Size of the receiver's buffer.
-
-        Returns:
-            A channel receiver that provides realtime inverter data.
-        """
-
-    @abstractmethod
-    async def ev_charger_data(
-        self,
-        component_id: int,
-        maxsize: int = RECEIVER_MAX_SIZE,
-    ) -> Receiver[EVChargerData]:
-        """Return a channel receiver that provides an `EvChargeData` stream.
-
-        Args:
-            component_id: id of the ev charger to get data for.
-            maxsize: Size of the receiver's buffer.
-
-        Returns:
-            A channel receiver that provides realtime ev charger data.
-        """
-
-    @abstractmethod
-    async def set_power(self, component_id: int, power_w: float) -> None:
-        """Send request to the Microgrid to set power for component.
-
-        If power > 0, then component will be charged with this power.
-        If power < 0, then component will be discharged with this power.
-        If power == 0, then stop charging or discharging component.
-
-
-        Args:
-            component_id: id of the component to set power.
-            power_w: power to set for the component.
-        """
-
-    @abstractmethod
-    async def set_bounds(self, component_id: int, lower: float, upper: float) -> None:
-        """Send `SetBoundsParam`s received from a channel to the Microgrid service.
-
-        Args:
-            component_id: ID of the component to set bounds for.
-            lower: Lower bound to be set for the component.
-            upper: Upper bound to be set for the component.
-        """
-
-
-# pylint: disable=no-member
-
-
-class MicrogridGrpcClient(MicrogridApiClient):
+class ApiClient:
     """Microgrid API client implementation using gRPC as the underlying protocol."""
 
     def __init__(
@@ -219,9 +102,9 @@ class MicrogridGrpcClient(MicrogridApiClient):
             # grpc.aio is missing types and mypy thinks this is not awaitable,
             # but it is
             component_list = await cast(
-                Awaitable[microgrid_pb.ComponentList],
+                Awaitable[PbComponentList],
                 self.api.ListComponents(
-                    microgrid_pb.ComponentFilter(),
+                    PbComponentFilter(),
                     timeout=int(DEFAULT_GRPC_CALL_TIMEOUT),
                 ),
             )
@@ -243,16 +126,15 @@ class MicrogridGrpcClient(MicrogridApiClient):
                 debug_error_string=err.debug_error_string(),
             )
         components_only = filter(
-            lambda c: c.category
-            is not components_pb.ComponentCategory.COMPONENT_CATEGORY_SENSOR,
+            lambda c: c.category is not PbComponentCategory.COMPONENT_CATEGORY_SENSOR,
             component_list.components,
         )
         result: Iterable[Component] = map(
             lambda c: Component(
                 c.id,
-                _component_category_from_protobuf(c.category),
-                _component_type_from_protobuf(c.category, c.inverter),
-                _component_metadata_from_protobuf(c.category, c.grid),
+                component_category_from_protobuf(c.category),
+                component_type_from_protobuf(c.category, c.inverter),
+                component_metadata_from_protobuf(c.category, c.grid),
             ),
             components_only,
         )
@@ -268,10 +150,10 @@ class MicrogridGrpcClient(MicrogridApiClient):
         Returns:
             the microgrid metadata.
         """
-        microgrid_metadata: microgrid_pb.MicrogridMetadata | None = None
+        microgrid_metadata: PbMicrogridMetadata | None = None
         try:
             microgrid_metadata = await cast(
-                Awaitable[microgrid_pb.MicrogridMetadata],
+                Awaitable[PbMicrogridMetadata],
                 self.api.GetMicrogridMetadata(
                     Empty(),
                     timeout=int(DEFAULT_GRPC_CALL_TIMEOUT),
@@ -312,14 +194,14 @@ class MicrogridGrpcClient(MicrogridApiClient):
             AioRpcError: if connection to Microgrid API cannot be established or
                 when the api call exceeded timeout
         """
-        connection_filter = microgrid_pb.ConnectionFilter(starts=starts, ends=ends)
+        connection_filter = PbConnectionFilter(starts=starts, ends=ends)
         try:
             valid_components, all_connections = await asyncio.gather(
                 self.components(),
                 # grpc.aio is missing types and mypy thinks this is not
                 # awaitable, but it is
                 cast(
-                    Awaitable[microgrid_pb.ConnectionList],
+                    Awaitable[PbConnectionList],
                     self.api.ListConnections(
                         connection_filter,
                         timeout=int(DEFAULT_GRPC_CALL_TIMEOUT),
@@ -355,8 +237,8 @@ class MicrogridGrpcClient(MicrogridApiClient):
     async def _component_data_task(
         self,
         component_id: int,
-        transform: Callable[[microgrid_pb.ComponentData], _GenericComponentData],
-        sender: Sender[_GenericComponentData],
+        transform: Callable[[PbComponentData], _ComponentDataT],
+        sender: Sender[_ComponentDataT],
     ) -> None:
         """Read data from the microgrid API and send to a channel.
 
@@ -373,7 +255,7 @@ class MicrogridGrpcClient(MicrogridApiClient):
             )
             try:
                 call = self.api.StreamComponentData(
-                    microgrid_pb.ComponentIdParam(id=component_id),
+                    PbComponentIdParam(id=component_id),
                 )
                 # grpc.aio is missing types and mypy thinks this is not
                 # async iterable, but it is
@@ -409,8 +291,8 @@ class MicrogridGrpcClient(MicrogridApiClient):
     def _get_component_data_channel(
         self,
         component_id: int,
-        transform: Callable[[microgrid_pb.ComponentData], _GenericComponentData],
-    ) -> Broadcast[_GenericComponentData]:
+        transform: Callable[[PbComponentData], _ComponentDataT],
+    ) -> Broadcast[_ComponentDataT]:
         """Return the broadcast channel for a given component_id.
 
         If a broadcast channel for the given component_id doesn't exist, create
@@ -428,7 +310,7 @@ class MicrogridGrpcClient(MicrogridApiClient):
         if component_id in self._component_streams:
             return self._component_streams[component_id]
         task_name = f"raw-component-data-{component_id}"
-        chan = Broadcast[_GenericComponentData](task_name, resend_latest=True)
+        chan = Broadcast[_ComponentDataT](task_name, resend_latest=True)
         self._component_streams[component_id] = chan
 
         self._streaming_tasks[component_id] = asyncio.create_task(
@@ -595,11 +477,9 @@ class MicrogridGrpcClient(MicrogridApiClient):
         """
         try:
             await cast(
-                Awaitable[microgrid_pb.SetPowerActiveParam],
+                Awaitable[PbSetPowerActiveParam],
                 self.api.SetPowerActive(
-                    microgrid_pb.SetPowerActiveParam(
-                        component_id=component_id, power=power_w
-                    ),
+                    PbSetPowerActiveParam(component_id=component_id, power=power_w),
                     timeout=int(DEFAULT_GRPC_CALL_TIMEOUT),
                 ),
             )
@@ -620,7 +500,7 @@ class MicrogridGrpcClient(MicrogridApiClient):
         lower: float,
         upper: float,
     ) -> None:
-        """Send `SetBoundsParam`s received from a channel to the Microgrid service.
+        """Send `PbSetBoundsParam`s received from a channel to the Microgrid service.
 
         Args:
             component_id: ID of the component to set bounds for.
@@ -639,15 +519,13 @@ class MicrogridGrpcClient(MicrogridApiClient):
         if lower > 0:
             raise ValueError(f"Lower bound {upper} must be less than or equal to 0.")
 
-        target_metric = (
-            microgrid_pb.SetBoundsParam.TargetMetric.TARGET_METRIC_POWER_ACTIVE
-        )
+        target_metric = PbSetBoundsParam.TargetMetric.TARGET_METRIC_POWER_ACTIVE
         try:
             self.api.AddInclusionBounds(
-                microgrid_pb.SetBoundsParam(
+                PbSetBoundsParam(
                     component_id=component_id,
                     target_metric=target_metric,
-                    bounds=metrics_pb.Bounds(lower=lower, upper=upper),
+                    bounds=PbBounds(lower=lower, upper=upper),
                 ),
             )
         except grpc.aio.AioRpcError as err:

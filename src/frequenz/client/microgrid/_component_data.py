@@ -2,16 +2,23 @@
 # Copyright © 2022 Frequenz Energy-as-a-Service GmbH
 
 """Component data types for data coming from a microgrid."""
-from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
+from typing import Self
 
-import frequenz.api.microgrid.battery_pb2 as battery_pb
-import frequenz.api.microgrid.inverter_pb2 as inverter_pb
-import frequenz.api.microgrid.microgrid_pb2 as microgrid_pb
+# pylint: disable=no-name-in-module
+from frequenz.api.microgrid.battery_pb2 import ComponentState as PbBatteryComponentState
+from frequenz.api.microgrid.battery_pb2 import Error as PbBatteryError
+from frequenz.api.microgrid.battery_pb2 import RelayState as PbBatteryRelayState
+from frequenz.api.microgrid.inverter_pb2 import (
+    ComponentState as PbInverterComponentState,
+)
+from frequenz.api.microgrid.inverter_pb2 import Error as PbInverterError
+from frequenz.api.microgrid.microgrid_pb2 import ComponentData as PbComponentData
 
+# pylint: enable=no-name-in-module
 from ._component_states import EVChargerCableState, EVChargerComponentState
 
 
@@ -30,10 +37,10 @@ class ComponentData(ABC):
     # data from a protobuf message. The whole protobuf message is stored as the `raw`
     # attribute. When `ComponentData` is not instantiated from a protobuf message,
     # i.e. using the constructor, `raw` will be set to `None`.
-    raw: microgrid_pb.ComponentData | None = field(default=None, init=False)
+    raw: PbComponentData | None = field(default=None, init=False)
     """Raw component data as decoded from the wire."""
 
-    def _set_raw(self, raw: microgrid_pb.ComponentData) -> None:
+    def _set_raw(self, raw: PbComponentData) -> None:
         """Store raw protobuf message.
 
         It is preferred to keep the dataclasses immutable (frozen) and make the `raw`
@@ -47,7 +54,7 @@ class ComponentData(ABC):
 
     @classmethod
     @abstractmethod
-    def from_proto(cls, raw: microgrid_pb.ComponentData) -> ComponentData:
+    def from_proto(cls, raw: PbComponentData) -> Self:
         """Create ComponentData from a protobuf message.
 
         Args:
@@ -86,7 +93,7 @@ class MeterData(ComponentData):
     """The AC power frequency in Hertz (Hz)."""
 
     @classmethod
-    def from_proto(cls, raw: microgrid_pb.ComponentData) -> MeterData:
+    def from_proto(cls, raw: PbComponentData) -> Self:
         """Create MeterData from a protobuf message.
 
         Args:
@@ -189,17 +196,17 @@ class BatteryData(ComponentData):  # pylint: disable=too-many-instance-attribute
     temperature: float
     """The (average) temperature reported by the battery, in Celsius (°C)."""
 
-    _relay_state: battery_pb.RelayState.ValueType
+    _relay_state: PbBatteryRelayState.ValueType
     """State of the battery relay."""
 
-    _component_state: battery_pb.ComponentState.ValueType
+    _component_state: PbBatteryComponentState.ValueType
     """State of the battery."""
 
-    _errors: list[battery_pb.Error]
+    _errors: list[PbBatteryError]
     """List of errors in protobuf struct."""
 
     @classmethod
-    def from_proto(cls, raw: microgrid_pb.ComponentData) -> BatteryData:
+    def from_proto(cls, raw: PbComponentData) -> Self:
         """Create BatteryData from a protobuf message.
 
         Args:
@@ -302,14 +309,14 @@ class InverterData(ComponentData):  # pylint: disable=too-many-instance-attribut
     frequency: float
     """AC frequency, in Hertz (Hz)."""
 
-    _component_state: inverter_pb.ComponentState.ValueType
+    _component_state: PbInverterComponentState.ValueType
     """State of the inverter."""
 
-    _errors: list[inverter_pb.Error]
+    _errors: list[PbInverterError]
     """List of errors from the component."""
 
     @classmethod
-    def from_proto(cls, raw: microgrid_pb.ComponentData) -> InverterData:
+    def from_proto(cls, raw: PbComponentData) -> Self:
         """Create InverterData from a protobuf message.
 
         Args:
@@ -429,7 +436,7 @@ class EVChargerData(ComponentData):  # pylint: disable=too-many-instance-attribu
     """The state of the ev charger."""
 
     @classmethod
-    def from_proto(cls, raw: microgrid_pb.ComponentData) -> EVChargerData:
+    def from_proto(cls, raw: PbComponentData) -> Self:
         """Create EVChargerData from a protobuf message.
 
         Args:

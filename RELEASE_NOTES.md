@@ -6,12 +6,8 @@ Code import from the [SDK v1.0.0-rc5](https://github.com/frequenz-floss/frequenz
 
 ## Upgrading
 
-<!-- Here goes notes on how to upgrade from previous versions, including deprecations and what they should be replaced with -->
+Changes compared to the code in the SDK v1.0.0-rc5 release:
 
-## New Features
-
-<!-- Here goes the main new features and examples or instructions on how to use them -->
-
-## Bug Fixes
-
-<!-- Here goes notable bug fixes that are worth a special mention or explanation -->
+* The `MicrogridGrpcClient` class was renamed to `ApiClient`.
+* The `MicrogridApiClient` abstract base class was removed, use `ApiClient` instead.
+* The `Connection` class is now a `dataclass` instead of a `NamedTuple`. If you use the tuple-like interface (`connection[0]`, etc.) you should use the named attributes instead or use [`dataclasses.astuple()`](https://docs.python.org/3/library/dataclasses.html#dataclasses.astuple) to convert it to a tuple.

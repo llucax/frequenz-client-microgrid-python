@@ -8,15 +8,13 @@ check integration with the API.  Note that this should exclude almost
 all framework code, as API integration should be highly encapsulated.
 """
 
-from __future__ import annotations
-
 import asyncio
 from collections.abc import Iterable, Iterator
-
-# pylint: disable=invalid-name,no-name-in-module,unused-import
 from concurrent import futures
 
-import grpc
+import grpc.aio
+
+# pylint: disable=no-name-in-module
 from frequenz.api.common.components_pb2 import (
     COMPONENT_CATEGORY_BATTERY,
     COMPONENT_CATEGORY_EV_CHARGER,
@@ -57,6 +55,9 @@ from google.protobuf.empty_pb2 import Empty
 from google.protobuf.timestamp_pb2 import Timestamp
 from google.protobuf.wrappers_pb2 import BoolValue
 
+# pylint: enable=no-name-in-module
+from typing_extensions import override
+
 
 class MockMicrogridServicer(  # pylint: disable=too-many-public-methods
     MicrogridServicer
@@ -70,7 +71,7 @@ class MockMicrogridServicer(  # pylint: disable=too-many-public-methods
 
     def __init__(
         self,
-        components: list[tuple[int, ComponentCategory.V]] | None = None,
+        components: list[tuple[int, ComponentCategory.ValueType]] | None = None,
         connections: list[tuple[int, int]] | None = None,
     ) -> None:
         """Create a MockMicrogridServicer instance."""
@@ -88,9 +89,9 @@ class MockMicrogridServicer(  # pylint: disable=too-many-public-methods
     def add_component(
         self,
         component_id: int,
-        component_category: ComponentCategory.V,
+        component_category: ComponentCategory.ValueType,
         max_current: float | None = None,
-        inverter_type: InverterType.V = InverterType.INVERTER_TYPE_UNSPECIFIED,
+        inverter_type: InverterType.ValueType = InverterType.INVERTER_TYPE_UNSPECIFIED,
     ) -> None:
         """Add a component to the mock service."""
         if component_category == ComponentCategory.COMPONENT_CATEGORY_INVERTER:
@@ -121,7 +122,9 @@ class MockMicrogridServicer(  # pylint: disable=too-many-public-methods
         """Add a connection to the mock service."""
         self._connections.append(Connection(start=start, end=end))
 
-    def set_components(self, components: list[tuple[int, ComponentCategory.V]]) -> None:
+    def set_components(
+        self, components: list[tuple[int, ComponentCategory.ValueType]]
+    ) -> None:
         """Set components to mock service, dropping existing."""
         self._components.clear()
         self._components.extend(
@@ -148,8 +151,8 @@ class MockMicrogridServicer(  # pylint: disable=too-many-public-methods
         """Drop all received bounds."""
         self._bounds.clear()
 
-    # pylint: disable=unused-argument
-    def ListComponents(
+    @override
+    def ListComponents(  # pylint: disable=unused-argument
         self,
         request: ComponentFilter,
         context: grpc.ServicerContext,
@@ -157,12 +160,7 @@ class MockMicrogridServicer(  # pylint: disable=too-many-public-methods
         """List components."""
         return ComponentList(components=self._components)
 
-    def ListAllComponents(
-        self, request: Empty, context: grpc.ServicerContext
-    ) -> ComponentList:
-        """Return a list of all components."""
-        return ComponentList(components=self._components)
-
+    @override
     def ListConnections(
         self, request: ConnectionFilter, context: grpc.ServicerContext
     ) -> ConnectionList:
@@ -174,6 +172,7 @@ class MockMicrogridServicer(  # pylint: disable=too-many-public-methods
             connections = filter(lambda c: c.end in request.ends, connections)
         return ConnectionList(connections=connections)
 
+    @override
     def StreamComponentData(
         self, request: ComponentIdParam, context: grpc.ServicerContext
     ) -> Iterator[ComponentData]:
@@ -217,6 +216,7 @@ class MockMicrogridServicer(  # pylint: disable=too-many-public-methods
             msg = next_msg()
             yield msg
 
+    @override
     def SetPowerActive(
         self, request: SetPowerActiveParam, context: grpc.ServicerContext
     ) -> Empty:
@@ -224,30 +224,35 @@ class MockMicrogridServicer(  # pylint: disable=too-many-public-methods
         self._latest_power = request
         return Empty()
 
+    @override
     def SetPowerReactive(
         self, request: SetPowerReactiveParam, context: grpc.ServicerContext
     ) -> Empty:
         """Microgrid service SetPowerReactive method stub."""
         return Empty()
 
+    @override
     def GetMicrogridMetadata(
         self, request: Empty, context: grpc.ServicerContext
     ) -> MicrogridMetadata:
         """Microgrid service GetMicrogridMetadata method stub."""
         return MicrogridMetadata()
 
+    @override
     def CanStreamData(
         self, request: ComponentIdParam, context: grpc.ServicerContext
     ) -> BoolValue:
         """Microgrid service CanStreamData method stub."""
         return BoolValue(value=True)
 
+    @override
     def AddExclusionBounds(
         self, request: SetBoundsParam, context: grpc.ServicerContext
     ) -> Timestamp:
         """Microgrid service AddExclusionBounds method stub."""
         return Timestamp()
 
+    @override
     def AddInclusionBounds(
         self, request: SetBoundsParam, context: grpc.ServicerContext
     ) -> Timestamp:
@@ -255,28 +260,33 @@ class MockMicrogridServicer(  # pylint: disable=too-many-public-methods
         self._bounds.append(request)
         return Timestamp()
 
+    @override
     def HotStandby(
         self, request: ComponentIdParam, context: grpc.ServicerContext
     ) -> Empty:
         """Microgrid service HotStandby method stub."""
         return Empty()
 
+    @override
     def ColdStandby(
         self, request: ComponentIdParam, context: grpc.ServicerContext
     ) -> Empty:
         """Microgrid service ColdStandby method stub."""
         return Empty()
 
+    @override
     def ErrorAck(
         self, request: ComponentIdParam, context: grpc.ServicerContext
     ) -> Empty:
         """Microgrid service ErrorAck method stub."""
         return Empty()
 
+    @override
     def Start(self, request: ComponentIdParam, context: grpc.ServicerContext) -> Empty:
         """Microgrid service Start method stub."""
         return Empty()
 
+    @override
     def Stop(self, request: ComponentIdParam, context: grpc.ServicerContext) -> Empty:
         """Microgrid service Stop method stub."""
         return Empty()
