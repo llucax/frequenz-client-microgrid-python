@@ -29,7 +29,8 @@ from frequenz.api.microgrid.microgrid_pb2 import (
 from frequenz.api.microgrid.microgrid_pb2_grpc import MicrogridStub
 
 # pylint: enable=no-name-in-module
-from frequenz.channels import Broadcast, Receiver, Sender
+from frequenz.channels import Receiver
+from frequenz.client.base.grpc_streaming_helper import GrpcStreamingHelper
 from frequenz.client.base.retry_strategy import LinearBackoff, RetryStrategy
 from google.protobuf.empty_pb2 import Empty  # pylint: disable=no-name-in-module
 
@@ -84,8 +85,7 @@ class ApiClient:
         self.api = MicrogridStub(grpc_channel)
         """The gRPC stub for the microgrid API."""
 
-        self._component_streams: dict[int, Broadcast[Any]] = {}
-        self._streaming_tasks: dict[int, asyncio.Task[None]] = {}
+        self._broadcasters: dict[int, GrpcStreamingHelper[Any, Any]] = {}
         self._retry_spec = retry_spec
 
     async def components(self) -> Iterable[Component]:
@@ -234,94 +234,49 @@ class ApiClient:
 
         return result
 
-    async def _component_data_task(
+    async def _new_component_data_receiver(
         self,
+        *,
         component_id: int,
+        expected_category: ComponentCategory,
         transform: Callable[[PbComponentData], _ComponentDataT],
-        sender: Sender[_ComponentDataT],
-    ) -> None:
-        """Read data from the microgrid API and send to a channel.
+        maxsize: int,
+    ) -> Receiver[_ComponentDataT]:
+        """Return a new broadcaster receiver for a given `component_id`.
+
+        If a broadcaster for the given `component_id` doesn't exist, it creates a new
+        one.
 
         Args:
             component_id: id of the component to get data for.
+            expected_category: Category of the component to get data for.
             transform: A method for transforming raw component data into the
                 desired output type.
-            sender: A channel sender, to send the component data to.
-        """
-        retry_spec: RetryStrategy = self._retry_spec.copy()
-        while True:
-            _logger.debug(
-                "Making call to `GetComponentData`, for component_id=%d", component_id
-            )
-            try:
-                call = self.api.StreamComponentData(
-                    PbComponentIdParam(id=component_id),
-                )
-                # grpc.aio is missing types and mypy thinks this is not
-                # async iterable, but it is
-                async for msg in call:  # type: ignore[attr-defined]
-                    await sender.send(transform(msg))
-            except grpc.aio.AioRpcError as err:
-                api_details = f"Microgrid API: {self.target}."
-                _logger.exception(
-                    "`GetComponentData`, for component_id=%d: exception: %s api: %s",
-                    component_id,
-                    err,
-                    api_details,
-                )
-
-            if interval := retry_spec.next_interval():
-                _logger.warning(
-                    "`GetComponentData`, for component_id=%d: connection ended, "
-                    "retrying %s in %0.3f seconds.",
-                    component_id,
-                    retry_spec.get_progress(),
-                    interval,
-                )
-                await asyncio.sleep(interval)
-            else:
-                _logger.warning(
-                    "`GetComponentData`, for component_id=%d: connection ended, "
-                    "retry limit exceeded %s.",
-                    component_id,
-                    retry_spec.get_progress(),
-                )
-                break
-
-    def _get_component_data_channel(
-        self,
-        component_id: int,
-        transform: Callable[[PbComponentData], _ComponentDataT],
-    ) -> Broadcast[_ComponentDataT]:
-        """Return the broadcast channel for a given component_id.
-
-        If a broadcast channel for the given component_id doesn't exist, create
-        a new channel and a task for reading data from the microgrid api and
-        sending them to the channel.
-
-        Args:
-            component_id: id of the component to get data for.
-            transform: A method for transforming raw component data into the
-                desired output type.
+            maxsize: Size of the receiver's buffer.
 
         Returns:
-            The channel for the given component_id.
+            The new receiver for the given `component_id`.
         """
-        if component_id in self._component_streams:
-            return self._component_streams[component_id]
-        task_name = f"raw-component-data-{component_id}"
-        chan = Broadcast[_ComponentDataT](task_name, resend_latest=True)
-        self._component_streams[component_id] = chan
-
-        self._streaming_tasks[component_id] = asyncio.create_task(
-            self._component_data_task(
-                component_id,
-                transform,
-                chan.new_sender(),
-            ),
-            name=task_name,
+        await self._expect_category(
+            component_id,
+            expected_category,
         )
-        return chan
+
+        broadcaster = self._broadcasters.setdefault(
+            component_id,
+            GrpcStreamingHelper(
+                f"raw-component-data-{component_id}",
+                # We need to cast here because grpc says StreamComponentData is
+                # a grpc.CallIterator[PbComponentData], not a
+                # grpc.aio.UnaryStreamCall[..., PbComponentData].
+                lambda: cast(
+                    grpc.aio.UnaryStreamCall[Any, PbComponentData],
+                    self.api.StreamComponentData(PbComponentIdParam(id=component_id)),
+                ),
+                transform,
+            ),
+        )
+        return broadcaster.new_receiver(maxsize=maxsize)
 
     async def _expect_category(
         self,
@@ -372,14 +327,12 @@ class ApiClient:
         Returns:
             A channel receiver that provides realtime meter data.
         """
-        await self._expect_category(
-            component_id,
-            ComponentCategory.METER,
+        return await self._new_component_data_receiver(
+            component_id=component_id,
+            expected_category=ComponentCategory.METER,
+            transform=MeterData.from_proto,
+            maxsize=maxsize,
         )
-        return self._get_component_data_channel(
-            component_id,
-            MeterData.from_proto,
-        ).new_receiver(maxsize=maxsize)
 
     async def battery_data(  # noqa: DOC502 (ValueError is raised indirectly by _expect_category)
         self,
@@ -398,14 +351,12 @@ class ApiClient:
         Returns:
             A channel receiver that provides realtime battery data.
         """
-        await self._expect_category(
-            component_id,
-            ComponentCategory.BATTERY,
+        return await self._new_component_data_receiver(
+            component_id=component_id,
+            expected_category=ComponentCategory.BATTERY,
+            transform=BatteryData.from_proto,
+            maxsize=maxsize,
         )
-        return self._get_component_data_channel(
-            component_id,
-            BatteryData.from_proto,
-        ).new_receiver(maxsize=maxsize)
 
     async def inverter_data(  # noqa: DOC502 (ValueError is raised indirectly by _expect_category)
         self,
@@ -424,14 +375,12 @@ class ApiClient:
         Returns:
             A channel receiver that provides realtime inverter data.
         """
-        await self._expect_category(
-            component_id,
-            ComponentCategory.INVERTER,
+        return await self._new_component_data_receiver(
+            component_id=component_id,
+            expected_category=ComponentCategory.INVERTER,
+            transform=InverterData.from_proto,
+            maxsize=maxsize,
         )
-        return self._get_component_data_channel(
-            component_id,
-            InverterData.from_proto,
-        ).new_receiver(maxsize=maxsize)
 
     async def ev_charger_data(  # noqa: DOC502 (ValueError is raised indirectly by _expect_category)
         self,
@@ -450,14 +399,12 @@ class ApiClient:
         Returns:
             A channel receiver that provides realtime ev charger data.
         """
-        await self._expect_category(
-            component_id,
-            ComponentCategory.EV_CHARGER,
+        return await self._new_component_data_receiver(
+            component_id=component_id,
+            expected_category=ComponentCategory.EV_CHARGER,
+            transform=EVChargerData.from_proto,
+            maxsize=maxsize,
         )
-        return self._get_component_data_channel(
-            component_id,
-            EVChargerData.from_proto,
-        ).new_receiver(maxsize=maxsize)
 
     async def set_power(self, component_id: int, power_w: float) -> None:
         """Send request to the Microgrid to set power for component.
