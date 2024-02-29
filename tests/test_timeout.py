@@ -1,7 +1,8 @@
 # License: MIT
 # Copyright © 2022 Frequenz Energy-as-a-Service GmbH
 
-"""Benchmark for microgrid data."""
+"""Tests for the timeout handling in the client."""
+
 import time
 from typing import Any, Iterator
 from unittest.mock import patch
@@ -46,7 +47,7 @@ def fake_grpc_call_timeout() -> Iterator[float]:
 
 
 async def test_components_timeout(mocker: MockerFixture) -> None:
-    """Test if the components() method properly raises AioRpcError."""
+    """Test if the components() method properly raises a timeeout AioRpcError."""
     servicer = MockMicrogridServicer()
 
     def mock_list_components(
@@ -70,7 +71,7 @@ async def test_components_timeout(mocker: MockerFixture) -> None:
 
 
 async def test_connections_timeout(mocker: MockerFixture) -> None:
-    """Test if the connections() method properly raises AioRpcError."""
+    """Test if the connections() method properly raises a timeout AioRpcError."""
     servicer = MockMicrogridServicer()
 
     def mock_list_connections(
@@ -94,7 +95,7 @@ async def test_connections_timeout(mocker: MockerFixture) -> None:
 
 
 async def test_set_power_timeout(mocker: MockerFixture) -> None:
-    """Test if the set_power() method properly raises AioRpcError."""
+    """Test if the set_power() method properly raises a timeout AioRpcError."""
     servicer = MockMicrogridServicer()
 
     def mock_set_power(
