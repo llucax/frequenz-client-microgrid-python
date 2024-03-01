@@ -18,6 +18,7 @@ from frequenz.api.microgrid.microgrid_pb2 import ComponentList as PbComponentLis
 from frequenz.api.microgrid.microgrid_pb2 import ConnectionFilter as PbConnectionFilter
 from frequenz.api.microgrid.microgrid_pb2 import ConnectionList as PbConnectionList
 from frequenz.api.microgrid.microgrid_pb2 import SetBoundsParam as PbSetBoundsParam
+from frequenz.client.base.retry_strategy import LinearBackoff
 from google.protobuf.empty_pb2 import Empty
 
 # pylint: enable=no-name-in-module
@@ -36,7 +37,6 @@ from frequenz.client.microgrid._component_data import (
     MeterData,
 )
 from frequenz.client.microgrid._connection import Connection
-from frequenz.client.microgrid._retry import LinearBackoff
 
 from . import mock_api
 

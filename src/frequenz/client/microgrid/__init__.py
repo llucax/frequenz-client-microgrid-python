@@ -7,6 +7,12 @@ This package provides a low-level interface for interacting with the microgrid A
 """
 
 
+from frequenz.client.base.retry_strategy import (
+    ExponentialBackoff,
+    LinearBackoff,
+    RetryStrategy,
+)
+
 from ._client import ApiClient
 from ._component import Component
 from ._component_data import (
@@ -19,7 +25,6 @@ from ._component_data import (
 from ._component_states import EVChargerCableState, EVChargerComponentState
 from ._connection import Connection
 from ._metadata import Location, Metadata
-from ._retry import ExponentialBackoff, LinearBackoff, RetryStrategy
 
 __all__ = [
     "ApiClient",
