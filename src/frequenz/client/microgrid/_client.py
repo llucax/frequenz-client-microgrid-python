@@ -30,8 +30,7 @@ from frequenz.api.microgrid.microgrid_pb2_grpc import MicrogridStub
 
 # pylint: enable=no-name-in-module
 from frequenz.channels import Receiver
-from frequenz.client.base.grpc_streaming_helper import GrpcStreamingHelper
-from frequenz.client.base.retry_strategy import LinearBackoff, RetryStrategy
+from frequenz.client.base import retry, streaming
 from google.protobuf.empty_pb2 import Empty  # pylint: disable=no-name-in-module
 
 from ._component import (
@@ -68,7 +67,7 @@ class ApiClient:
         self,
         grpc_channel: grpc.aio.Channel,
         target: str,
-        retry_spec: RetryStrategy = LinearBackoff(),
+        retry_spec: retry.Strategy = retry.LinearBackoff(),
     ) -> None:
         """Initialize the class instance.
 
@@ -85,7 +84,7 @@ class ApiClient:
         self.api = MicrogridStub(grpc_channel)
         """The gRPC stub for the microgrid API."""
 
-        self._broadcasters: dict[int, GrpcStreamingHelper[Any, Any]] = {}
+        self._broadcasters: dict[int, streaming.GrpcStreamBroadcaster[Any, Any]] = {}
         self._retry_spec = retry_spec
 
     async def components(self) -> Iterable[Component]:
@@ -264,7 +263,7 @@ class ApiClient:
 
         broadcaster = self._broadcasters.setdefault(
             component_id,
-            GrpcStreamingHelper(
+            streaming.GrpcStreamBroadcaster(
                 f"raw-component-data-{component_id}",
                 # We need to cast here because grpc says StreamComponentData is
                 # a grpc.CallIterator[PbComponentData], not a
