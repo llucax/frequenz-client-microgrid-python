@@ -67,7 +67,7 @@ async def _gprc_server(
     microgrid = client.ApiClient(
         grpc.aio.insecure_channel(f"[::]:{port}"),
         f"[::]:{port}",
-        retry_spec=LinearBackoff(interval=0.0, jitter=0.05),
+        retry_strategy=LinearBackoff(interval=0.0, jitter=0.05),
     )
     await server.start()
     try:

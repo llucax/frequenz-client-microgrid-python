@@ -67,7 +67,7 @@ class ApiClient:
         self,
         grpc_channel: grpc.aio.Channel,
         target: str,
-        retry_spec: retry.Strategy = retry.LinearBackoff(),
+        retry_strategy: retry.Strategy = retry.LinearBackoff(),
     ) -> None:
         """Initialize the class instance.
 
@@ -75,8 +75,8 @@ class ApiClient:
             grpc_channel: asyncio-supporting gRPC channel
             target: server (host:port) to be used for asyncio-supporting gRPC
                 channel that the client should use to contact the API
-            retry_spec: Specs on how to retry if the connection to a streaming
-                method gets lost.
+            retry_strategy: The retry strategy to use to reconnect when the connection
+                to the streaming method is lost.
         """
         self.target = target
         """The location (as "host:port") of the microgrid API gRPC server."""
@@ -85,7 +85,7 @@ class ApiClient:
         """The gRPC stub for the microgrid API."""
 
         self._broadcasters: dict[int, streaming.GrpcStreamBroadcaster[Any, Any]] = {}
-        self._retry_spec = retry_spec
+        self._retry_strategy = retry_strategy
 
     async def components(self) -> Iterable[Component]:
         """Fetch all the components present in the microgrid.
