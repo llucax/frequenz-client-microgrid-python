@@ -18,10 +18,11 @@ from frequenz.api.microgrid.microgrid_pb2 import ComponentList as PbComponentLis
 from frequenz.api.microgrid.microgrid_pb2 import ConnectionFilter as PbConnectionFilter
 from frequenz.api.microgrid.microgrid_pb2 import ConnectionList as PbConnectionList
 from frequenz.api.microgrid.microgrid_pb2 import SetBoundsParam as PbSetBoundsParam
-from frequenz.client.base.retry_strategy import LinearBackoff
-from google.protobuf.empty_pb2 import Empty
 
 # pylint: enable=no-name-in-module
+from frequenz.client.base.retry import LinearBackoff
+from google.protobuf.empty_pb2 import Empty  # pylint: disable=no-name-in-module
+
 from frequenz.client.microgrid import _client as client
 from frequenz.client.microgrid._component import (
     Component,
@@ -66,7 +67,7 @@ async def _gprc_server(
     microgrid = client.ApiClient(
         grpc.aio.insecure_channel(f"[::]:{port}"),
         f"[::]:{port}",
-        retry_spec=LinearBackoff(interval=0.0, jitter=0.05),
+        retry_strategy=LinearBackoff(interval=0.0, jitter=0.05),
     )
     await server.start()
     try:
