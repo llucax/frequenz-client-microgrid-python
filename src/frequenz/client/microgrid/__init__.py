@@ -8,7 +8,16 @@ This package provides a low-level interface for interacting with the microgrid A
 
 
 from ._client import ApiClient
-from ._component import Component
+from ._component import (
+    Component,
+    ComponentCategory,
+    ComponentMetadata,
+    ComponentMetricId,
+    ComponentType,
+    Fuse,
+    GridMetadata,
+    InverterType,
+)
 from ._component_data import (
     BatteryData,
     ComponentData,
@@ -24,12 +33,19 @@ __all__ = [
     "ApiClient",
     "BatteryData",
     "Component",
+    "ComponentCategory",
     "ComponentData",
+    "ComponentMetadata",
+    "ComponentMetricId",
+    "ComponentType",
     "Connection",
     "EVChargerCableState",
     "EVChargerComponentState",
     "EVChargerData",
+    "Fuse",
+    "GridMetadata",
     "InverterData",
+    "InverterType",
     "Location",
     "Metadata",
     "MeterData",
