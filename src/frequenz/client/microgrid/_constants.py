@@ -6,7 +6,7 @@
 To be replaced by ConfigManager.
 """
 
-RECEIVER_MAX_SIZE = 50
+RECEIVER_MAX_SIZE: int = 50
 """Default buffer size of the receiver."""
 
 WAIT_FOR_COMPONENT_DATA_SEC: float = 2
