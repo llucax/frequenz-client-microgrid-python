@@ -2,6 +2,16 @@
 
 ## Summary
 
-This version downgrades the `protobuf` dependency to 4.21.6.
+<!-- Here goes a general summary of what this release is about -->
 
-This is the version used in the SDK v1.0.0-rc5, which we imported the code from. If we don't do this we introduce an unnecessary dependency conflict with the SDK.
+## Upgrading
+
+<!-- Here goes notes on how to upgrade from previous versions, including deprecations and what they should be replaced with -->
+
+## New Features
+
+<!-- Here goes the main new features and examples or instructions on how to use them -->
+
+## Bug Fixes
+
+<!-- Here goes notable bug fixes that are worth a special mention or explanation -->
