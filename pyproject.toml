@@ -37,8 +37,8 @@ classifiers = [
 requires-python = ">= 3.11, < 4"
 dependencies = [
   "frequenz-api-microgrid >= 0.15.3, < 0.16.0",
-  "frequenz-channels == 1.0.0b2",
-  "frequenz-client-base >= 0.2.1, < 0.3.0",
+  "frequenz-channels == 1.0.0-rc1",
+  "frequenz-client-base >= 0.3.0, < 0.4.0",
   "grpcio >= 1.54.2, < 2",
   "protobuf >= 4.21.6, < 5",
   "timezonefinder >= 6.2.0, < 7",
