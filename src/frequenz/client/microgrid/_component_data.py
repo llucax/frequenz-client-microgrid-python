@@ -87,6 +87,22 @@ class MeterData(ComponentData):
     * Negative means supply into the grid.
     """
 
+    reactive_power: float
+    """The total reactive 3-phase AC power, in Volt-Ampere Reactive (VAr).
+
+    * Positive power means capacitive (current leading w.r.t. voltage).
+    * Negative power means inductive (current lagging w.r.t. voltage).
+    """
+
+    reactive_power_per_phase: tuple[float, float, float]
+    """The per-phase AC reactive power, in Volt-Ampere Reactive (VAr).
+
+    The provided values are for phase 1, 2, and 3 respectively.
+
+    * Positive power means capacitive (current leading w.r.t. voltage).
+    * Negative power means inductive (current lagging w.r.t. voltage).
+    """
+
     current_per_phase: tuple[float, float, float]
     """AC current in Amperes (A) for phase/line 1,2 and 3 respectively.
 
@@ -122,6 +138,12 @@ class MeterData(ComponentData):
                 raw.meter.data.ac.phase_1.power_active.value,
                 raw.meter.data.ac.phase_2.power_active.value,
                 raw.meter.data.ac.phase_3.power_active.value,
+            ),
+            reactive_power=raw.meter.data.ac.power_reactive.value,
+            reactive_power_per_phase=(
+                raw.meter.data.ac.phase_1.power_reactive.value,
+                raw.meter.data.ac.phase_2.power_reactive.value,
+                raw.meter.data.ac.phase_3.power_reactive.value,
             ),
             current_per_phase=(
                 raw.meter.data.ac.phase_1.current.value,
@@ -270,6 +292,22 @@ class InverterData(ComponentData):  # pylint: disable=too-many-instance-attribut
     * Negative means supply into the grid.
     """
 
+    reactive_power: float
+    """The total reactive 3-phase AC power, in Volt-Ampere Reactive (VAr).
+
+    * Positive power means capacitive (current leading w.r.t. voltage).
+    * Negative power means inductive (current lagging w.r.t. voltage).
+    """
+
+    reactive_power_per_phase: tuple[float, float, float]
+    """The per-phase AC reactive power, in Volt-Ampere Reactive (VAr).
+
+    The provided values are for phase 1, 2, and 3 respectively.
+
+    * Positive power means capacitive (current leading w.r.t. voltage).
+    * Negative power means inductive (current lagging w.r.t. voltage).
+    """
+
     current_per_phase: tuple[float, float, float]
     """AC current in Amperes (A) for phase/line 1, 2 and 3 respectively.
 
@@ -359,6 +397,12 @@ class InverterData(ComponentData):  # pylint: disable=too-many-instance-attribut
                 raw.inverter.data.ac.phase_2.power_active.value,
                 raw.inverter.data.ac.phase_3.power_active.value,
             ),
+            reactive_power=raw.inverter.data.ac.power_reactive.value,
+            reactive_power_per_phase=(
+                raw.inverter.data.ac.phase_1.power_reactive.value,
+                raw.inverter.data.ac.phase_2.power_reactive.value,
+                raw.inverter.data.ac.phase_3.power_reactive.value,
+            ),
             current_per_phase=(
                 raw.inverter.data.ac.phase_1.current.value,
                 raw.inverter.data.ac.phase_2.current.value,
@@ -411,6 +455,22 @@ class EVChargerData(ComponentData):  # pylint: disable=too-many-instance-attribu
 
     * Positive means consumption from the grid.
     * Negative means supply into the grid.
+    """
+
+    reactive_power: float
+    """The total reactive 3-phase AC power, in Volt-Ampere Reactive (VAr).
+
+    * Positive power means capacitive (current leading w.r.t. voltage).
+    * Negative power means inductive (current lagging w.r.t. voltage).
+    """
+
+    reactive_power_per_phase: tuple[float, float, float]
+    """The per-phase AC reactive power, in Volt-Ampere Reactive (VAr).
+
+    The provided values are for phase 1, 2, and 3 respectively.
+
+    * Positive power means capacitive (current leading w.r.t. voltage).
+    * Negative power means inductive (current lagging w.r.t. voltage).
     """
 
     voltage_per_phase: tuple[float, float, float]
@@ -490,6 +550,12 @@ class EVChargerData(ComponentData):  # pylint: disable=too-many-instance-attribu
                 raw.ev_charger.data.ac.phase_1.power_active.value,
                 raw.ev_charger.data.ac.phase_2.power_active.value,
                 raw.ev_charger.data.ac.phase_3.power_active.value,
+            ),
+            reactive_power=raw.ev_charger.data.ac.power_reactive.value,
+            reactive_power_per_phase=(
+                raw.ev_charger.data.ac.phase_1.power_reactive.value,
+                raw.ev_charger.data.ac.phase_2.power_reactive.value,
+                raw.ev_charger.data.ac.phase_3.power_reactive.value,
             ),
             current_per_phase=(
                 raw.ev_charger.data.ac.phase_1.current.value,
