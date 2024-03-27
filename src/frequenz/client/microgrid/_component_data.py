@@ -70,18 +70,30 @@ class MeterData(ComponentData):
     """A wrapper class for holding meter data."""
 
     active_power: float
-    """The 3-phase active power, in Watts, represented in the passive sign convention.
-            +ve current means consumption, away from the grid.
-            -ve current means supply into the grid.
+    """The total active 3-phase AC power, in Watts (W).
+
+    Represented in the passive sign convention.
+
+    * Positive means consumption from the grid.
+    * Negative means supply into the grid.
     """
 
     active_power_per_phase: tuple[float, float, float]
-    """The AC active power for phase/line 1,2 and 3 respectively."""
+    """The per-phase AC active power for phase 1, 2, and 3 respectively, in Watt (W).
+
+    Represented in the passive sign convention.
+
+    * Positive means consumption from the grid.
+    * Negative means supply into the grid.
+    """
 
     current_per_phase: tuple[float, float, float]
     """AC current in Amperes (A) for phase/line 1,2 and 3 respectively.
-            +ve current means consumption, away from the grid.
-            -ve current means supply into the grid.
+
+    Represented in the passive sign convention.
+
+    * Positive means consumption from the grid.
+    * Negative means supply into the grid.
     """
 
     voltage_per_phase: tuple[float, float, float]
@@ -241,18 +253,30 @@ class InverterData(ComponentData):  # pylint: disable=too-many-instance-attribut
     """A wrapper class for holding inverter data."""
 
     active_power: float
-    """The 3-phase active power, in Watts, represented in the passive sign convention.
-            +ve current means consumption, away from the grid.
-            -ve current means supply into the grid.
+    """The total active 3-phase AC power, in Watts (W).
+
+    Represented in the passive sign convention.
+
+    * Positive means consumption from the grid.
+    * Negative means supply into the grid.
     """
 
     active_power_per_phase: tuple[float, float, float]
-    """The AC active power for phase/line 1, 2 and 3 respectively."""
+    """The per-phase AC active power for phase 1, 2, and 3 respectively, in Watt (W).
+
+    Represented in the passive sign convention.
+
+    * Positive means consumption from the grid.
+    * Negative means supply into the grid.
+    """
 
     current_per_phase: tuple[float, float, float]
     """AC current in Amperes (A) for phase/line 1, 2 and 3 respectively.
-            +ve current means consumption, away from the grid.
-            -ve current means supply into the grid.
+
+    Represented in the passive sign convention.
+
+    * Positive means consumption from the grid.
+    * Negative means supply into the grid.
     """
 
     voltage_per_phase: tuple[float, float, float]
@@ -363,18 +387,30 @@ class EVChargerData(ComponentData):  # pylint: disable=too-many-instance-attribu
     """A wrapper class for holding ev_charger data."""
 
     active_power: float
-    """The 3-phase active power, in Watts, represented in the passive sign convention.
-        +ve current means consumption, away from the grid.
-        -ve current means supply into the grid.
+    """The total active 3-phase AC power, in Watts (W).
+
+    Represented in the passive sign convention.
+
+    * Positive means consumption from the grid.
+    * Negative means supply into the grid.
     """
 
     active_power_per_phase: tuple[float, float, float]
-    """The AC active power for phase/line 1,2 and 3 respectively."""
+    """The per-phase AC active power for phase 1, 2, and 3 respectively, in Watt (W).
+
+    Represented in the passive sign convention.
+
+    * Positive means consumption from the grid.
+    * Negative means supply into the grid.
+    """
 
     current_per_phase: tuple[float, float, float]
     """AC current in Amperes (A) for phase/line 1,2 and 3 respectively.
-        +ve current means consumption, away from the grid.
-        -ve current means supply into the grid.
+
+    Represented in the passive sign convention.
+
+    * Positive means consumption from the grid.
+    * Negative means supply into the grid.
     """
 
     voltage_per_phase: tuple[float, float, float]
