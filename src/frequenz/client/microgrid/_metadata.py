@@ -24,8 +24,10 @@ class Location:
     timezone: ZoneInfo | None = None
     """The timezone of the microgrid.
 
-    The timezone will be set to None if the latitude or longitude points
-    are not set or the timezone cannot be found given the location points.
+    If not passed during construction (or `None` is passed), and there is a `longitude`
+    and `latitude`, then the timezone wil be looked up in a database based on the
+    coordinates. This lookup could fail, in which case the timezone will still be
+    `None`.
     """
 
     def __post_init__(self) -> None:
