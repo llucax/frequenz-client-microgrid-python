@@ -6,9 +6,10 @@
 
 ## Introduction
 
-Microgrid API client for Python
-
-TODO(cookiecutter): Improve the README file
+This project provides a Python client for the [Frequenz Microgrid
+API](https://frequenz-floss.github.io/frequenz-api-microgrid/) that is more
+idiomatic to use in Python than the automatically-generated gRPC client
+provided by `protoc`.
 
 ## Supported Platforms
 

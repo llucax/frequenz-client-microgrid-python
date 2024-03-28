@@ -52,20 +52,28 @@ def test_inverter_data() -> None:
                         system_exclusion_bounds=Bounds(lower=-501.0, upper=501.0),
                         system_inclusion_bounds=Bounds(lower=-51_000.0, upper=51_000.0),
                     ),
+                    power_reactive=Metric(
+                        value=200.3,
+                        system_exclusion_bounds=Bounds(lower=-502.0, upper=502.0),
+                        system_inclusion_bounds=Bounds(lower=-52_000.0, upper=52_000.0),
+                    ),
                     phase_1=AC.ACPhase(
                         current=Metric(value=12.3),
                         voltage=Metric(value=229.8),
                         power_active=Metric(value=33.1),
+                        power_reactive=Metric(value=10.1),
                     ),
                     phase_2=AC.ACPhase(
                         current=Metric(value=23.4),
                         voltage=Metric(value=230.0),
                         power_active=Metric(value=33.3),
+                        power_reactive=Metric(value=10.2),
                     ),
                     phase_3=AC.ACPhase(
                         current=Metric(value=34.5),
                         voltage=Metric(value=230.2),
                         power_active=Metric(value=33.8),
+                        power_reactive=Metric(value=10.3),
                     ),
                 ),
             ),
@@ -84,6 +92,8 @@ def test_inverter_data() -> None:
     assert inv_data.frequency == pytest.approx(50.1)
     assert inv_data.active_power == pytest.approx(100.2)
     assert inv_data.active_power_per_phase == pytest.approx((33.1, 33.3, 33.8))
+    assert inv_data.reactive_power == pytest.approx(200.3)
+    assert inv_data.reactive_power_per_phase == pytest.approx((10.1, 10.2, 10.3))
     assert inv_data.current_per_phase == pytest.approx((12.3, 23.4, 34.5))
     assert inv_data.voltage_per_phase == pytest.approx((229.8, 230.0, 230.2))
     assert inv_data.active_power_inclusion_lower_bound == pytest.approx(-51_000.0)

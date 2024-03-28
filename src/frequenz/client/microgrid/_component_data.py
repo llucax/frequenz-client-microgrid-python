@@ -70,18 +70,46 @@ class MeterData(ComponentData):
     """A wrapper class for holding meter data."""
 
     active_power: float
-    """The 3-phase active power, in Watts, represented in the passive sign convention.
-            +ve current means consumption, away from the grid.
-            -ve current means supply into the grid.
+    """The total active 3-phase AC power, in Watts (W).
+
+    Represented in the passive sign convention.
+
+    * Positive means consumption from the grid.
+    * Negative means supply into the grid.
     """
 
     active_power_per_phase: tuple[float, float, float]
-    """The AC active power for phase/line 1,2 and 3 respectively."""
+    """The per-phase AC active power for phase 1, 2, and 3 respectively, in Watt (W).
+
+    Represented in the passive sign convention.
+
+    * Positive means consumption from the grid.
+    * Negative means supply into the grid.
+    """
+
+    reactive_power: float
+    """The total reactive 3-phase AC power, in Volt-Ampere Reactive (VAr).
+
+    * Positive power means capacitive (current leading w.r.t. voltage).
+    * Negative power means inductive (current lagging w.r.t. voltage).
+    """
+
+    reactive_power_per_phase: tuple[float, float, float]
+    """The per-phase AC reactive power, in Volt-Ampere Reactive (VAr).
+
+    The provided values are for phase 1, 2, and 3 respectively.
+
+    * Positive power means capacitive (current leading w.r.t. voltage).
+    * Negative power means inductive (current lagging w.r.t. voltage).
+    """
 
     current_per_phase: tuple[float, float, float]
     """AC current in Amperes (A) for phase/line 1,2 and 3 respectively.
-            +ve current means consumption, away from the grid.
-            -ve current means supply into the grid.
+
+    Represented in the passive sign convention.
+
+    * Positive means consumption from the grid.
+    * Negative means supply into the grid.
     """
 
     voltage_per_phase: tuple[float, float, float]
@@ -110,6 +138,12 @@ class MeterData(ComponentData):
                 raw.meter.data.ac.phase_1.power_active.value,
                 raw.meter.data.ac.phase_2.power_active.value,
                 raw.meter.data.ac.phase_3.power_active.value,
+            ),
+            reactive_power=raw.meter.data.ac.power_reactive.value,
+            reactive_power_per_phase=(
+                raw.meter.data.ac.phase_1.power_reactive.value,
+                raw.meter.data.ac.phase_2.power_reactive.value,
+                raw.meter.data.ac.phase_3.power_reactive.value,
             ),
             current_per_phase=(
                 raw.meter.data.ac.phase_1.current.value,
@@ -241,18 +275,46 @@ class InverterData(ComponentData):  # pylint: disable=too-many-instance-attribut
     """A wrapper class for holding inverter data."""
 
     active_power: float
-    """The 3-phase active power, in Watts, represented in the passive sign convention.
-            +ve current means consumption, away from the grid.
-            -ve current means supply into the grid.
+    """The total active 3-phase AC power, in Watts (W).
+
+    Represented in the passive sign convention.
+
+    * Positive means consumption from the grid.
+    * Negative means supply into the grid.
     """
 
     active_power_per_phase: tuple[float, float, float]
-    """The AC active power for phase/line 1, 2 and 3 respectively."""
+    """The per-phase AC active power for phase 1, 2, and 3 respectively, in Watt (W).
+
+    Represented in the passive sign convention.
+
+    * Positive means consumption from the grid.
+    * Negative means supply into the grid.
+    """
+
+    reactive_power: float
+    """The total reactive 3-phase AC power, in Volt-Ampere Reactive (VAr).
+
+    * Positive power means capacitive (current leading w.r.t. voltage).
+    * Negative power means inductive (current lagging w.r.t. voltage).
+    """
+
+    reactive_power_per_phase: tuple[float, float, float]
+    """The per-phase AC reactive power, in Volt-Ampere Reactive (VAr).
+
+    The provided values are for phase 1, 2, and 3 respectively.
+
+    * Positive power means capacitive (current leading w.r.t. voltage).
+    * Negative power means inductive (current lagging w.r.t. voltage).
+    """
 
     current_per_phase: tuple[float, float, float]
     """AC current in Amperes (A) for phase/line 1, 2 and 3 respectively.
-            +ve current means consumption, away from the grid.
-            -ve current means supply into the grid.
+
+    Represented in the passive sign convention.
+
+    * Positive means consumption from the grid.
+    * Negative means supply into the grid.
     """
 
     voltage_per_phase: tuple[float, float, float]
@@ -335,6 +397,12 @@ class InverterData(ComponentData):  # pylint: disable=too-many-instance-attribut
                 raw.inverter.data.ac.phase_2.power_active.value,
                 raw.inverter.data.ac.phase_3.power_active.value,
             ),
+            reactive_power=raw.inverter.data.ac.power_reactive.value,
+            reactive_power_per_phase=(
+                raw.inverter.data.ac.phase_1.power_reactive.value,
+                raw.inverter.data.ac.phase_2.power_reactive.value,
+                raw.inverter.data.ac.phase_3.power_reactive.value,
+            ),
             current_per_phase=(
                 raw.inverter.data.ac.phase_1.current.value,
                 raw.inverter.data.ac.phase_2.current.value,
@@ -363,18 +431,46 @@ class EVChargerData(ComponentData):  # pylint: disable=too-many-instance-attribu
     """A wrapper class for holding ev_charger data."""
 
     active_power: float
-    """The 3-phase active power, in Watts, represented in the passive sign convention.
-        +ve current means consumption, away from the grid.
-        -ve current means supply into the grid.
+    """The total active 3-phase AC power, in Watts (W).
+
+    Represented in the passive sign convention.
+
+    * Positive means consumption from the grid.
+    * Negative means supply into the grid.
     """
 
     active_power_per_phase: tuple[float, float, float]
-    """The AC active power for phase/line 1,2 and 3 respectively."""
+    """The per-phase AC active power for phase 1, 2, and 3 respectively, in Watt (W).
+
+    Represented in the passive sign convention.
+
+    * Positive means consumption from the grid.
+    * Negative means supply into the grid.
+    """
 
     current_per_phase: tuple[float, float, float]
     """AC current in Amperes (A) for phase/line 1,2 and 3 respectively.
-        +ve current means consumption, away from the grid.
-        -ve current means supply into the grid.
+
+    Represented in the passive sign convention.
+
+    * Positive means consumption from the grid.
+    * Negative means supply into the grid.
+    """
+
+    reactive_power: float
+    """The total reactive 3-phase AC power, in Volt-Ampere Reactive (VAr).
+
+    * Positive power means capacitive (current leading w.r.t. voltage).
+    * Negative power means inductive (current lagging w.r.t. voltage).
+    """
+
+    reactive_power_per_phase: tuple[float, float, float]
+    """The per-phase AC reactive power, in Volt-Ampere Reactive (VAr).
+
+    The provided values are for phase 1, 2, and 3 respectively.
+
+    * Positive power means capacitive (current leading w.r.t. voltage).
+    * Negative power means inductive (current lagging w.r.t. voltage).
     """
 
     voltage_per_phase: tuple[float, float, float]
@@ -454,6 +550,12 @@ class EVChargerData(ComponentData):  # pylint: disable=too-many-instance-attribu
                 raw.ev_charger.data.ac.phase_1.power_active.value,
                 raw.ev_charger.data.ac.phase_2.power_active.value,
                 raw.ev_charger.data.ac.phase_3.power_active.value,
+            ),
+            reactive_power=raw.ev_charger.data.ac.power_reactive.value,
+            reactive_power_per_phase=(
+                raw.ev_charger.data.ac.phase_1.power_reactive.value,
+                raw.ev_charger.data.ac.phase_2.power_reactive.value,
+                raw.ev_charger.data.ac.phase_3.power_reactive.value,
             ),
             current_per_phase=(
                 raw.ev_charger.data.ac.phase_1.current.value,
