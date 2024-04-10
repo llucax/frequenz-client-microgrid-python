@@ -2,11 +2,7 @@
 # Copyright © 2024 Frequenz Energy-as-a-Service GmbH
 
 [build-system]
-requires = [
-  "setuptools == 68.1.0",
-  "setuptools_scm[toml] == 7.1.0",
-  "frequenz-repo-config[lib] == 0.9.1",
-]
+requires = ["setuptools == 68.1.0", "setuptools_scm[toml] == 7.1.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -36,11 +32,10 @@ classifiers = [
 ]
 requires-python = ">= 3.11, < 4"
 dependencies = [
-  "frequenz-api-microgrid >= 0.15.3, < 0.16.0",
+  "betterproto == 2.0.0b6",
   "frequenz-channels >= 1.0.0-rc1, < 2.0.0",
   "frequenz-client-base[grpclib] >= 0.4.0, < 0.5",
-  "grpcio >= 1.54.2, < 2",
-  "protobuf >= 4.21.6, < 6",
+  "frequenz-microgrid-betterproto >= 0.15.3.1, < 0.16",
   "timezonefinder >= 6.2.0, < 7",
   "typing-extensions >= 4.5.0, < 5",
 ]
