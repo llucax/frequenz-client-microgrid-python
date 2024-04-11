@@ -5,7 +5,7 @@
 
 import asyncio
 import logging
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Iterable, Set
 from typing import Any, TypeVar
 
 import grpclib
@@ -145,8 +145,8 @@ class ApiClient:
 
     async def connections(
         self,
-        starts: set[int] | None = None,
-        ends: set[int] | None = None,
+        starts: Set[int] = frozenset(),
+        ends: Set[int] = frozenset(),
     ) -> Iterable[Connection]:
         """Fetch the connections between components in the microgrid.
 
@@ -163,7 +163,9 @@ class ApiClient:
             ClientError: If the connection to the Microgrid API cannot be established or
                 when the api call exceeded the timeout.
         """
-        connection_filter = pb_microgrid.ConnectionFilter(starts=starts, ends=ends)
+        connection_filter = pb_microgrid.ConnectionFilter(
+            starts=list(starts), ends=list(ends)
+        )
         try:
             valid_components, all_connections = await asyncio.gather(
                 self.components(),
