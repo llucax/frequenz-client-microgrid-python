@@ -5,34 +5,19 @@
 
 import asyncio
 import logging
-from collections.abc import AsyncIterator, Awaitable, Callable, Iterable
-from typing import Any, TypeVar, cast
+from collections.abc import Callable, Iterable
+from typing import Any, TypeVar
 
-import grpc.aio
-
-# pylint: disable=no-name-in-module
-from frequenz.api.common.components_pb2 import ComponentCategory as PbComponentCategory
-from frequenz.api.common.metrics_pb2 import Bounds as PbBounds
-from frequenz.api.microgrid.microgrid_pb2 import ComponentData as PbComponentData
-from frequenz.api.microgrid.microgrid_pb2 import ComponentFilter as PbComponentFilter
-from frequenz.api.microgrid.microgrid_pb2 import ComponentIdParam as PbComponentIdParam
-from frequenz.api.microgrid.microgrid_pb2 import ComponentList as PbComponentList
-from frequenz.api.microgrid.microgrid_pb2 import ConnectionFilter as PbConnectionFilter
-from frequenz.api.microgrid.microgrid_pb2 import ConnectionList as PbConnectionList
-from frequenz.api.microgrid.microgrid_pb2 import (
-    MicrogridMetadata as PbMicrogridMetadata,
-)
-from frequenz.api.microgrid.microgrid_pb2 import SetBoundsParam as PbSetBoundsParam
-from frequenz.api.microgrid.microgrid_pb2 import (
-    SetPowerActiveParam as PbSetPowerActiveParam,
-)
-from frequenz.api.microgrid.microgrid_pb2_grpc import MicrogridStub
-
-# pylint: enable=no-name-in-module
+import grpclib
+import grpclib.client
+from betterproto.lib.google import protobuf as pb_google
 from frequenz.channels import Receiver
 from frequenz.client.base import retry, streaming
-from google.protobuf.empty_pb2 import Empty  # pylint: disable=no-name-in-module
-from google.protobuf.timestamp_pb2 import Timestamp  # pylint: disable=no-name-in-module
+from frequenz.microgrid.betterproto.frequenz.api import microgrid as pb_microgrid
+from frequenz.microgrid.betterproto.frequenz.api.common import (
+    components as pb_components,
+)
+from frequenz.microgrid.betterproto.frequenz.api.common import metrics as pb_metrics
 
 from ._component import (
     Component,
@@ -67,7 +52,7 @@ class ApiClient:
 
     def __init__(
         self,
-        grpc_channel: grpc.aio.Channel,
+        grpc_channel: grpclib.client.Channel,
         target: str,
         retry_strategy: retry.Strategy | None = None,
     ) -> None:
@@ -84,7 +69,7 @@ class ApiClient:
         self.target = target
         """The location (as "host:port") of the microgrid API gRPC server."""
 
-        self.api = MicrogridStub(grpc_channel)
+        self.api = pb_microgrid.MicrogridStub(grpc_channel)
         """The gRPC stub for the microgrid API."""
 
         self._broadcasters: dict[int, streaming.GrpcStreamBroadcaster[Any, Any]] = {}
@@ -101,22 +86,19 @@ class ApiClient:
                 when the api call exceeded the timeout.
         """
         try:
-            # grpc.aio is missing types and mypy thinks this is not awaitable,
-            # but it is
-            component_list = await cast(
-                Awaitable[PbComponentList],
-                self.api.ListComponents(
-                    PbComponentFilter(),
-                    timeout=int(DEFAULT_GRPC_CALL_TIMEOUT),
-                ),
+            component_list = await self.api.list_components(
+                pb_microgrid.ComponentFilter(),
+                timeout=int(DEFAULT_GRPC_CALL_TIMEOUT),
             )
 
-        except grpc.aio.AioRpcError as err:
+        except grpclib.GRPCError as err:
             raise ClientError(
-                f"Failed to list components. Microgrid API: {self.target}. Err: {err.details()}"
+                f"Failed to list components. Microgrid API: {self.target}. Err: {err}"
             ) from err
+
         components_only = filter(
-            lambda c: c.category is not PbComponentCategory.COMPONENT_CATEGORY_SENSOR,
+            lambda c: c.category
+            is not pb_components.ComponentCategory.COMPONENT_CATEGORY_SENSOR,
             component_list.components,
         )
         result: Iterable[Component] = map(
@@ -140,16 +122,13 @@ class ApiClient:
         Returns:
             the microgrid metadata.
         """
-        microgrid_metadata: PbMicrogridMetadata | None = None
+        microgrid_metadata: pb_microgrid.MicrogridMetadata | None = None
         try:
-            microgrid_metadata = await cast(
-                Awaitable[PbMicrogridMetadata],
-                self.api.GetMicrogridMetadata(
-                    Empty(),
-                    timeout=int(DEFAULT_GRPC_CALL_TIMEOUT),
-                ),
+            microgrid_metadata = await self.api.get_microgrid_metadata(
+                pb_google.Empty(),
+                timeout=int(DEFAULT_GRPC_CALL_TIMEOUT),
             )
-        except grpc.aio.AioRpcError:
+        except grpclib.GRPCError:
             _logger.exception("The microgrid metadata is not available.")
 
         if not microgrid_metadata:
@@ -184,23 +163,18 @@ class ApiClient:
             ClientError: If the connection to the Microgrid API cannot be established or
                 when the api call exceeded the timeout.
         """
-        connection_filter = PbConnectionFilter(starts=starts, ends=ends)
+        connection_filter = pb_microgrid.ConnectionFilter(starts=starts, ends=ends)
         try:
             valid_components, all_connections = await asyncio.gather(
                 self.components(),
-                # grpc.aio is missing types and mypy thinks this is not
-                # awaitable, but it is
-                cast(
-                    Awaitable[PbConnectionList],
-                    self.api.ListConnections(
-                        connection_filter,
-                        timeout=int(DEFAULT_GRPC_CALL_TIMEOUT),
-                    ),
+                self.api.list_connections(
+                    connection_filter,
+                    timeout=int(DEFAULT_GRPC_CALL_TIMEOUT),
                 ),
             )
-        except grpc.aio.AioRpcError as err:
+        except grpclib.GRPCError as err:
             raise ClientError(
-                f"Failed to list connections. Microgrid API: {self.target}. Err: {err.details()}"
+                f"Failed to list connections. Microgrid API: {self.target}. Err: {err}"
             ) from err
         # Filter out the components filtered in `components` method.
         # id=0 is an exception indicating grid component.
@@ -223,7 +197,7 @@ class ApiClient:
         *,
         component_id: int,
         expected_category: ComponentCategory,
-        transform: Callable[[PbComponentData], _ComponentDataT],
+        transform: Callable[[pb_microgrid.ComponentData], _ComponentDataT],
         maxsize: int,
     ) -> Receiver[_ComponentDataT]:
         """Return a new broadcaster receiver for a given `component_id`.
@@ -250,13 +224,8 @@ class ApiClient:
         if broadcaster is None:
             broadcaster = streaming.GrpcStreamBroadcaster(
                 f"raw-component-data-{component_id}",
-                # We need to cast here because grpc says StreamComponentData is
-                # a grpc.CallIterator[PbComponentData] which is not an AsyncIterator,
-                # but it is a grpc.aio.UnaryStreamCall[..., PbComponentData], which it
-                # is.
-                lambda: cast(
-                    AsyncIterator[PbComponentData],
-                    self.api.StreamComponentData(PbComponentIdParam(id=component_id)),
+                lambda: self.api.stream_component_data(
+                    pb_microgrid.ComponentIdParam(id=component_id)
                 ),
                 transform,
                 retry_strategy=self._retry_strategy,
@@ -409,16 +378,15 @@ class ApiClient:
                 when the api call exceeded the timeout.
         """
         try:
-            await cast(
-                Awaitable[Empty],
-                self.api.SetPowerActive(
-                    PbSetPowerActiveParam(component_id=component_id, power=power_w),
-                    timeout=int(DEFAULT_GRPC_CALL_TIMEOUT),
+            await self.api.set_power_active(
+                pb_microgrid.SetPowerActiveParam(
+                    component_id=component_id, power=power_w
                 ),
+                timeout=int(DEFAULT_GRPC_CALL_TIMEOUT),
             )
-        except grpc.aio.AioRpcError as err:
+        except grpclib.GRPCError as err:
             raise ClientError(
-                f"Failed to set power. Microgrid API: {self.target}. Err: {err.details()}"
+                f"Failed to set power. Microgrid API: {self.target}. Err: {err}"
             ) from err
 
     async def set_bounds(
@@ -427,7 +395,7 @@ class ApiClient:
         lower: float,
         upper: float,
     ) -> None:
-        """Send `PbSetBoundsParam`s received from a channel to the Microgrid service.
+        """Send `SetBoundsParam`s received from a channel to the Microgrid service.
 
         Args:
             component_id: ID of the component to set bounds for.
@@ -446,28 +414,27 @@ class ApiClient:
         if lower > 0:
             raise ValueError(f"Lower bound {lower} must be less than or equal to 0.")
 
-        target_metric = PbSetBoundsParam.TargetMetric.TARGET_METRIC_POWER_ACTIVE
+        target_metric = (
+            pb_microgrid.SetBoundsParamTargetMetric.TARGET_METRIC_POWER_ACTIVE
+        )
         try:
-            await cast(
-                Awaitable[Timestamp],
-                self.api.AddInclusionBounds(
-                    PbSetBoundsParam(
-                        component_id=component_id,
-                        target_metric=target_metric,
-                        bounds=PbBounds(lower=lower, upper=upper),
-                    ),
-                    timeout=int(DEFAULT_GRPC_CALL_TIMEOUT),
+            await self.api.add_inclusion_bounds(
+                pb_microgrid.SetBoundsParam(
+                    component_id=component_id,
+                    target_metric=target_metric,
+                    bounds=pb_metrics.Bounds(lower=lower, upper=upper),
                 ),
+                timeout=int(DEFAULT_GRPC_CALL_TIMEOUT),
             )
-        except grpc.aio.AioRpcError as err:
+        except grpclib.GRPCError as err:
             _logger.error(
                 "set_bounds write failed: %s, for message: %s, api: %s. Err: %s",
                 err,
                 next,
                 api_details,
-                err.details(),
+                err,
             )
             raise ClientError(
                 f"Failed to set inclusion bounds. Microgrid API: {self.target}. "
-                f"Err: {err.details()}"
+                f"Err: {err}"
             ) from err
