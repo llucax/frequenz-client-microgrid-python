@@ -25,7 +25,7 @@ from google.protobuf.timestamp_pb2 import Timestamp
 # pylint: enable=no-name-in-module
 from pytest_mock import MockerFixture
 
-from frequenz.client.microgrid import ApiClient
+from frequenz.client.microgrid import ApiClient, ClientError
 
 from .mock_api import MockGrpcServer, MockMicrogridServicer
 
@@ -38,7 +38,7 @@ GRPC_SERVER_DELAY: float = 0.3
 def fake_grpc_call_timeout() -> Iterator[float]:
     """Patch the default gRPC call timeout."""
     # Timeout applied to all gRPC calls under test. It is expected after that the gRPC
-    # calls will raise an AioRpcError with status code equal to DEADLINE_EXCEEDED.
+    # calls will raise an ClientError with status code equal to DEADLINE_EXCEEDED.
     grpc_call_timeout: float = 0.1
 
     with patch(
@@ -49,7 +49,7 @@ def fake_grpc_call_timeout() -> Iterator[float]:
 
 
 async def test_components_timeout(mocker: MockerFixture) -> None:
-    """Test if the components() method properly raises a timeeout AioRpcError."""
+    """Test if the components() method properly raises a timeeout ClientError."""
     servicer = MockMicrogridServicer()
 
     def mock_list_components(
@@ -66,14 +66,16 @@ async def test_components_timeout(mocker: MockerFixture) -> None:
     grpc_channel = grpc.aio.insecure_channel(target)
     client = ApiClient(grpc_channel=grpc_channel, target=target)
 
-    with pytest.raises(grpc.aio.AioRpcError) as err_ctx:
+    with pytest.raises(ClientError) as err_ctx:
         _ = await client.components()
-    assert err_ctx.value.code() == grpc.StatusCode.DEADLINE_EXCEEDED
+    cause = err_ctx.value.__cause__
+    assert isinstance(cause, grpc.aio.AioRpcError)
+    assert cause.code() == grpc.StatusCode.DEADLINE_EXCEEDED
     assert await server.graceful_shutdown()
 
 
 async def test_connections_timeout(mocker: MockerFixture) -> None:
-    """Test if the connections() method properly raises a timeout AioRpcError."""
+    """Test if the connections() method properly raises a timeout ClientError."""
     servicer = MockMicrogridServicer()
 
     def mock_list_connections(
@@ -90,14 +92,16 @@ async def test_connections_timeout(mocker: MockerFixture) -> None:
     grpc_channel = grpc.aio.insecure_channel(target)
     client = ApiClient(grpc_channel=grpc_channel, target=target)
 
-    with pytest.raises(grpc.aio.AioRpcError) as err_ctx:
+    with pytest.raises(ClientError) as err_ctx:
         _ = await client.connections()
-    assert err_ctx.value.code() == grpc.StatusCode.DEADLINE_EXCEEDED
+    cause = err_ctx.value.__cause__
+    assert isinstance(cause, grpc.aio.AioRpcError)
+    assert cause.code() == grpc.StatusCode.DEADLINE_EXCEEDED
     assert await server.graceful_shutdown()
 
 
 async def test_set_power_timeout(mocker: MockerFixture) -> None:
-    """Test if the set_power() method properly raises a timeout AioRpcError."""
+    """Test if the set_power() method properly raises a timeout ClientError."""
     servicer = MockMicrogridServicer()
 
     def mock_set_power(
@@ -116,9 +120,11 @@ async def test_set_power_timeout(mocker: MockerFixture) -> None:
 
     power_values = [-100, 100]
     for power_w in power_values:
-        with pytest.raises(grpc.aio.AioRpcError) as err_ctx:
+        with pytest.raises(ClientError) as err_ctx:
             await client.set_power(component_id=1, power_w=power_w)
-        assert err_ctx.value.code() == grpc.StatusCode.DEADLINE_EXCEEDED
+        cause = err_ctx.value.__cause__
+        assert isinstance(cause, grpc.aio.AioRpcError)
+        assert cause.code() == grpc.StatusCode.DEADLINE_EXCEEDED
 
     assert await server.graceful_shutdown()
 
@@ -144,8 +150,10 @@ async def test_set_bounds_timeout(mocker: MockerFixture) -> None:
     bounds_values = [{"lower": 0.0, "upper": 100.0}, {"lower": -10.0, "upper": 1.0}]
 
     for bounds in bounds_values:
-        with pytest.raises(grpc.aio.AioRpcError) as err_ctx:
+        with pytest.raises(ClientError) as err_ctx:
             await client.set_bounds(component_id=1, **bounds)
-        assert err_ctx.value.code() == grpc.StatusCode.DEADLINE_EXCEEDED
+        cause = err_ctx.value.__cause__
+        assert isinstance(cause, grpc.aio.AioRpcError)
+        assert cause.code() == grpc.StatusCode.DEADLINE_EXCEEDED
 
     assert await server.graceful_shutdown()
