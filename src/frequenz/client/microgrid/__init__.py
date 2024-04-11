@@ -7,7 +7,7 @@ This package provides a low-level interface for interacting with the microgrid A
 """
 
 
-from ._client import ApiClient
+from ._client import ApiClient, ClientError
 from ._component import (
     Component,
     ComponentCategory,
@@ -32,6 +32,7 @@ from ._metadata import Location, Metadata
 __all__ = [
     "ApiClient",
     "BatteryData",
+    "ClientError",
     "Component",
     "ComponentCategory",
     "ComponentData",
