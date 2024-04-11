@@ -6,13 +6,8 @@
 from dataclasses import dataclass
 from enum import Enum
 
-# pylint: disable=no-name-in-module
-from frequenz.api.common.components_pb2 import ComponentCategory as PbComponentCategory
-from frequenz.api.microgrid.grid_pb2 import Metadata as PbGridMetadata
-from frequenz.api.microgrid.inverter_pb2 import Metadata as PbInverterMetadata
-from frequenz.api.microgrid.inverter_pb2 import Type as PbInverterType
-
-# pylint: enable=no-name-in-module
+from frequenz.microgrid.betterproto.frequenz.api.common import components
+from frequenz.microgrid.betterproto.frequenz.api.microgrid import grid, inverter
 
 
 class ComponentType(Enum):
@@ -22,22 +17,22 @@ class ComponentType(Enum):
 class InverterType(ComponentType):
     """Enum representing inverter types."""
 
-    NONE = PbInverterType.TYPE_UNSPECIFIED
+    NONE = inverter.Type.TYPE_UNSPECIFIED
     """Unspecified inverter type."""
 
-    BATTERY = PbInverterType.TYPE_BATTERY
+    BATTERY = inverter.Type.TYPE_BATTERY
     """Battery inverter."""
 
-    SOLAR = PbInverterType.TYPE_SOLAR
+    SOLAR = inverter.Type.TYPE_SOLAR
     """Solar inverter."""
 
-    HYBRID = PbInverterType.TYPE_HYBRID
+    HYBRID = inverter.Type.TYPE_HYBRID
     """Hybrid inverter."""
 
 
 def component_type_from_protobuf(
-    component_category: PbComponentCategory.ValueType,
-    component_metadata: PbInverterMetadata,
+    component_category: components.ComponentCategory,
+    component_metadata: inverter.Metadata,
 ) -> ComponentType | None:
     """Convert a protobuf InverterType message to Component enum.
 
@@ -53,7 +48,7 @@ def component_type_from_protobuf(
     # ComponentType values in the protobuf definition are not unique across categories
     # as of v0.11.0, so we need to check the component category first, before doing any
     # component type checks.
-    if component_category == PbComponentCategory.COMPONENT_CATEGORY_INVERTER:
+    if component_category == components.ComponentCategory.COMPONENT_CATEGORY_INVERTER:
         if not any(int(t.value) == int(component_metadata.type) for t in InverterType):
             return None
 
@@ -65,30 +60,30 @@ def component_type_from_protobuf(
 class ComponentCategory(Enum):
     """Possible types of microgrid component."""
 
-    NONE = PbComponentCategory.COMPONENT_CATEGORY_UNSPECIFIED
+    NONE = components.ComponentCategory.COMPONENT_CATEGORY_UNSPECIFIED
     """Unspecified component category."""
 
-    GRID = PbComponentCategory.COMPONENT_CATEGORY_GRID
+    GRID = components.ComponentCategory.COMPONENT_CATEGORY_GRID
     """Grid component."""
 
-    METER = PbComponentCategory.COMPONENT_CATEGORY_METER
+    METER = components.ComponentCategory.COMPONENT_CATEGORY_METER
     """Meter component."""
 
-    INVERTER = PbComponentCategory.COMPONENT_CATEGORY_INVERTER
+    INVERTER = components.ComponentCategory.COMPONENT_CATEGORY_INVERTER
     """Inverter component."""
 
-    BATTERY = PbComponentCategory.COMPONENT_CATEGORY_BATTERY
+    BATTERY = components.ComponentCategory.COMPONENT_CATEGORY_BATTERY
     """Battery component."""
 
-    EV_CHARGER = PbComponentCategory.COMPONENT_CATEGORY_EV_CHARGER
+    EV_CHARGER = components.ComponentCategory.COMPONENT_CATEGORY_EV_CHARGER
     """EV charger component."""
 
-    CHP = PbComponentCategory.COMPONENT_CATEGORY_CHP
+    CHP = components.ComponentCategory.COMPONENT_CATEGORY_CHP
     """CHP component."""
 
 
 def component_category_from_protobuf(
-    component_category: PbComponentCategory.ValueType,
+    component_category: components.ComponentCategory,
 ) -> ComponentCategory:
     """Convert a protobuf ComponentCategory message to ComponentCategory enum.
 
@@ -105,7 +100,7 @@ def component_category_from_protobuf(
             a valid component category as it does not form part of the
             microgrid itself)
     """
-    if component_category == PbComponentCategory.COMPONENT_CATEGORY_SENSOR:
+    if component_category == components.ComponentCategory.COMPONENT_CATEGORY_SENSOR:
         raise ValueError("Cannot create a component from a sensor!")
 
     if not any(t.value == component_category for t in ComponentCategory):
@@ -136,8 +131,8 @@ class GridMetadata(ComponentMetadata):
 
 
 def component_metadata_from_protobuf(
-    component_category: PbComponentCategory.ValueType,
-    component_metadata: PbGridMetadata,
+    component_category: components.ComponentCategory,
+    component_metadata: grid.Metadata,
 ) -> GridMetadata | None:
     """Convert a protobuf GridMetadata message to GridMetadata class.
 
@@ -150,7 +145,7 @@ def component_metadata_from_protobuf(
     Returns:
         GridMetadata instance corresponding to the protobuf message.
     """
-    if component_category == PbComponentCategory.COMPONENT_CATEGORY_GRID:
+    if component_category == components.ComponentCategory.COMPONENT_CATEGORY_GRID:
         max_current = component_metadata.rated_fuse_current
         fuse = Fuse(max_current)
         return GridMetadata(fuse)
