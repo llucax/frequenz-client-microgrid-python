@@ -463,7 +463,7 @@ class ApiClient:
         if upper < 0:
             raise ValueError(f"Upper bound {upper} must be greater than or equal to 0.")
         if lower > 0:
-            raise ValueError(f"Lower bound {upper} must be less than or equal to 0.")
+            raise ValueError(f"Lower bound {lower} must be less than or equal to 0.")
 
         target_metric = PbSetBoundsParam.TargetMetric.TARGET_METRIC_POWER_ACTIVE
         try:
