@@ -273,6 +273,7 @@ class ApiClient:
                     self.api.StreamComponentData(PbComponentIdParam(id=component_id)),
                 ),
                 transform,
+                retry_strategy=self._retry_strategy,
             )
             self._broadcasters[component_id] = broadcaster
         return broadcaster.new_receiver(maxsize=maxsize)
