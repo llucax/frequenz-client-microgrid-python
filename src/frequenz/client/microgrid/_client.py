@@ -76,6 +76,8 @@ class ApiClient:
         """The gRPC stub for the microgrid API."""
 
         self._broadcasters: dict[int, streaming.GrpcStreamBroadcaster[Any, Any]] = {}
+        if retry_strategy is None:
+            retry_strategy = retry.LinearBackoff()
         self._retry_strategy = retry_strategy
 
     async def components(self) -> Iterable[Component]:
