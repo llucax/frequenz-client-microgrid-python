@@ -305,8 +305,8 @@ class ApiClient:
 
         if comp.category != expected_category:
             raise ValueError(
-                f"Component id {component_id} is a {comp.category}"
-                f", not a {expected_category}."
+                f"Component id {component_id} is a {comp.category.name.lower()}"
+                f", not a {expected_category.name.lower()}."
             )
 
     async def meter_data(  # noqa: DOC502 (ValueError is raised indirectly by _expect_category)
