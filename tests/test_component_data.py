@@ -6,21 +6,11 @@
 from datetime import datetime, timezone
 
 import pytest
+from frequenz.microgrid.betterproto.frequenz.api import microgrid
+from frequenz.microgrid.betterproto.frequenz.api.common import metrics
+from frequenz.microgrid.betterproto.frequenz.api.common.metrics import electrical
+from frequenz.microgrid.betterproto.frequenz.api.microgrid import inverter
 
-# pylint: disable=no-name-in-module
-from frequenz.api.common.metrics.electrical_pb2 import AC
-from frequenz.api.common.metrics_pb2 import Bounds, Metric
-from frequenz.api.microgrid.inverter_pb2 import (
-    COMPONENT_STATE_DISCHARGING,
-    Data,
-    Error,
-    Inverter,
-    State,
-)
-from frequenz.api.microgrid.microgrid_pb2 import ComponentData as PbComponentData
-from google.protobuf.timestamp_pb2 import Timestamp
-
-# pylint: enable=no-name-in-module
 from frequenz.client.microgrid import ComponentData, InverterData
 
 
@@ -35,45 +25,52 @@ def test_inverter_data() -> None:
     """Verify the constructor for the InverterData class."""
     seconds = 1234567890
 
-    raw = PbComponentData(
+    raw = microgrid.ComponentData(
         id=5,
-        ts=Timestamp(seconds=seconds),
-        inverter=Inverter(
-            state=State(component_state=COMPONENT_STATE_DISCHARGING),
-            errors=[Error(msg="error message")],
-            data=Data(
-                dc_battery=None,
-                dc_solar=None,
-                temperature=None,
-                ac=AC(
-                    frequency=Metric(value=50.1),
-                    power_active=Metric(
+        ts=datetime.fromtimestamp(seconds, timezone.utc),
+        inverter=inverter.Inverter(
+            state=inverter.State(
+                component_state=inverter.ComponentState.COMPONENT_STATE_DISCHARGING
+            ),
+            errors=[inverter.Error(msg="error message")],
+            data=inverter.Data(
+                ac=electrical.Ac(
+                    frequency=metrics.Metric(value=50.1),
+                    power_active=metrics.Metric(
                         value=100.2,
-                        system_exclusion_bounds=Bounds(lower=-501.0, upper=501.0),
-                        system_inclusion_bounds=Bounds(lower=-51_000.0, upper=51_000.0),
+                        system_exclusion_bounds=metrics.Bounds(
+                            lower=-501.0, upper=501.0
+                        ),
+                        system_inclusion_bounds=metrics.Bounds(
+                            lower=-51_000.0, upper=51_000.0
+                        ),
                     ),
-                    power_reactive=Metric(
+                    power_reactive=metrics.Metric(
                         value=200.3,
-                        system_exclusion_bounds=Bounds(lower=-502.0, upper=502.0),
-                        system_inclusion_bounds=Bounds(lower=-52_000.0, upper=52_000.0),
+                        system_exclusion_bounds=metrics.Bounds(
+                            lower=-502.0, upper=502.0
+                        ),
+                        system_inclusion_bounds=metrics.Bounds(
+                            lower=-52_000.0, upper=52_000.0
+                        ),
                     ),
-                    phase_1=AC.ACPhase(
-                        current=Metric(value=12.3),
-                        voltage=Metric(value=229.8),
-                        power_active=Metric(value=33.1),
-                        power_reactive=Metric(value=10.1),
+                    phase_1=electrical.AcAcPhase(
+                        current=metrics.Metric(value=12.3),
+                        voltage=metrics.Metric(value=229.8),
+                        power_active=metrics.Metric(value=33.1),
+                        power_reactive=metrics.Metric(value=10.1),
                     ),
-                    phase_2=AC.ACPhase(
-                        current=Metric(value=23.4),
-                        voltage=Metric(value=230.0),
-                        power_active=Metric(value=33.3),
-                        power_reactive=Metric(value=10.2),
+                    phase_2=electrical.AcAcPhase(
+                        current=metrics.Metric(value=23.4),
+                        voltage=metrics.Metric(value=230.0),
+                        power_active=metrics.Metric(value=33.3),
+                        power_reactive=metrics.Metric(value=10.2),
                     ),
-                    phase_3=AC.ACPhase(
-                        current=Metric(value=34.5),
-                        voltage=Metric(value=230.2),
-                        power_active=Metric(value=33.8),
-                        power_reactive=Metric(value=10.3),
+                    phase_3=electrical.AcAcPhase(
+                        current=metrics.Metric(value=34.5),
+                        voltage=metrics.Metric(value=230.2),
+                        power_active=metrics.Metric(value=33.8),
+                        power_reactive=metrics.Metric(value=10.3),
                     ),
                 ),
             ),
@@ -84,10 +81,10 @@ def test_inverter_data() -> None:
     assert inv_data.component_id == 5
     assert inv_data.timestamp == datetime.fromtimestamp(seconds, timezone.utc)
     assert (  # pylint: disable=protected-access
-        inv_data._component_state == COMPONENT_STATE_DISCHARGING
+        inv_data._component_state == inverter.ComponentState.COMPONENT_STATE_DISCHARGING
     )
     assert inv_data._errors == [  # pylint: disable=protected-access
-        Error(msg="error message")
+        inverter.Error(msg="error message")
     ]
     assert inv_data.frequency == pytest.approx(50.1)
     assert inv_data.active_power == pytest.approx(100.2)
