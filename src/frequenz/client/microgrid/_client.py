@@ -305,8 +305,8 @@ class ApiClient:
 
         if comp.category != expected_category:
             raise ValueError(
-                f"Component id {component_id} is a {comp.category}"
-                f", not a {expected_category}."
+                f"Component id {component_id} is a {comp.category.name.lower()}"
+                f", not a {expected_category.name.lower()}."
             )
 
     async def meter_data(  # noqa: DOC502 (ValueError is raised indirectly by _expect_category)
@@ -463,7 +463,7 @@ class ApiClient:
         if upper < 0:
             raise ValueError(f"Upper bound {upper} must be greater than or equal to 0.")
         if lower > 0:
-            raise ValueError(f"Lower bound {upper} must be less than or equal to 0.")
+            raise ValueError(f"Lower bound {lower} must be less than or equal to 0.")
 
         target_metric = PbSetBoundsParam.TargetMetric.TARGET_METRIC_POWER_ACTIVE
         try:
