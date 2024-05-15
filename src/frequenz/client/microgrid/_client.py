@@ -261,9 +261,9 @@ class ApiClient:
             expected_category,
         )
 
-        broadcaster = self._broadcasters.setdefault(
-            component_id,
-            streaming.GrpcStreamBroadcaster(
+        broadcaster = self._broadcasters.get(component_id)
+        if broadcaster is None:
+            broadcaster = streaming.GrpcStreamBroadcaster(
                 f"raw-component-data-{component_id}",
                 # We need to cast here because grpc says StreamComponentData is
                 # a grpc.CallIterator[PbComponentData], not a
@@ -273,8 +273,9 @@ class ApiClient:
                     self.api.StreamComponentData(PbComponentIdParam(id=component_id)),
                 ),
                 transform,
-            ),
-        )
+                retry_strategy=self._retry_strategy,
+            )
+            self._broadcasters[component_id] = broadcaster
         return broadcaster.new_receiver(maxsize=maxsize)
 
     async def _expect_category(

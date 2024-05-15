@@ -14,4 +14,5 @@
 
 ## Bug Fixes
 
-<!-- Here goes notable bug fixes that are worth a special mention or explanation -->
+- Fix a leakage of `GrpcStreamBroadcaster` instances.
+- The user-passed retry strategy was not properly used by the data streaming methods.
