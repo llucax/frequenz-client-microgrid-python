@@ -425,7 +425,7 @@ class ApiClient:
         """
         try:
             await cast(
-                Awaitable[PbSetPowerActiveParam],
+                Awaitable[Empty],
                 self.api.SetPowerActive(
                     PbSetPowerActiveParam(component_id=component_id, power=power_w),
                     timeout=int(DEFAULT_GRPC_CALL_TIMEOUT),
