@@ -5,7 +5,7 @@
 
 import asyncio
 import logging
-from collections.abc import Awaitable, Callable, Iterable
+from collections.abc import AsyncIterator, Awaitable, Callable, Iterable
 from typing import Any, TypeVar, cast
 
 import grpc.aio
@@ -266,10 +266,11 @@ class ApiClient:
             broadcaster = streaming.GrpcStreamBroadcaster(
                 f"raw-component-data-{component_id}",
                 # We need to cast here because grpc says StreamComponentData is
-                # a grpc.CallIterator[PbComponentData], not a
-                # grpc.aio.UnaryStreamCall[..., PbComponentData].
+                # a grpc.CallIterator[PbComponentData] which is not an AsyncIterator,
+                # but it is a grpc.aio.UnaryStreamCall[..., PbComponentData], which it
+                # is.
                 lambda: cast(
-                    grpc.aio.UnaryStreamCall[Any, PbComponentData],
+                    AsyncIterator[PbComponentData],
                     self.api.StreamComponentData(PbComponentIdParam(id=component_id)),
                 ),
                 transform,
