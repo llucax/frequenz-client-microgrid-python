@@ -16,3 +16,4 @@
 
 - Fix a leakage of `GrpcStreamBroadcaster` instances.
 - The user-passed retry strategy was not properly used by the data streaming methods.
+- The client `set_bounds()` method might have not done anything and if it did, errors were not properly raised.
