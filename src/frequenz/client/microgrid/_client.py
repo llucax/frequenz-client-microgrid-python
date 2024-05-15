@@ -478,6 +478,7 @@ class ApiClient:
                         target_metric=target_metric,
                         bounds=PbBounds(lower=lower, upper=upper),
                     ),
+                    timeout=int(DEFAULT_GRPC_CALL_TIMEOUT),
                 ),
             )
         except grpc.aio.AioRpcError as err:
