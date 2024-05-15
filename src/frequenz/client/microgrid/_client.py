@@ -32,6 +32,7 @@ from frequenz.api.microgrid.microgrid_pb2_grpc import MicrogridStub
 from frequenz.channels import Receiver
 from frequenz.client.base import retry, streaming
 from google.protobuf.empty_pb2 import Empty  # pylint: disable=no-name-in-module
+from google.protobuf.timestamp_pb2 import Timestamp  # pylint: disable=no-name-in-module
 
 from ._component import (
     Component,
@@ -425,7 +426,7 @@ class ApiClient:
         """
         try:
             await cast(
-                Awaitable[PbSetPowerActiveParam],
+                Awaitable[Empty],
                 self.api.SetPowerActive(
                     PbSetPowerActiveParam(component_id=component_id, power=power_w),
                     timeout=int(DEFAULT_GRPC_CALL_TIMEOUT),
@@ -469,11 +470,15 @@ class ApiClient:
 
         target_metric = PbSetBoundsParam.TargetMetric.TARGET_METRIC_POWER_ACTIVE
         try:
-            self.api.AddInclusionBounds(
-                PbSetBoundsParam(
-                    component_id=component_id,
-                    target_metric=target_metric,
-                    bounds=PbBounds(lower=lower, upper=upper),
+            await cast(
+                Awaitable[Timestamp],
+                self.api.AddInclusionBounds(
+                    PbSetBoundsParam(
+                        component_id=component_id,
+                        target_metric=target_metric,
+                        bounds=PbBounds(lower=lower, upper=upper),
+                    ),
+                    timeout=int(DEFAULT_GRPC_CALL_TIMEOUT),
                 ),
             )
         except grpc.aio.AioRpcError as err:

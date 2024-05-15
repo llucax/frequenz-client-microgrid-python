@@ -17,8 +17,10 @@ from frequenz.api.microgrid.microgrid_pb2 import (
     ConnectionFilter,
     ConnectionList,
     PowerLevelParam,
+    SetBoundsParam,
 )
 from google.protobuf.empty_pb2 import Empty
+from google.protobuf.timestamp_pb2 import Timestamp
 
 # pylint: enable=no-name-in-module
 from pytest_mock import MockerFixture
@@ -116,6 +118,34 @@ async def test_set_power_timeout(mocker: MockerFixture) -> None:
     for power_w in power_values:
         with pytest.raises(grpc.aio.AioRpcError) as err_ctx:
             await client.set_power(component_id=1, power_w=power_w)
+        assert err_ctx.value.code() == grpc.StatusCode.DEADLINE_EXCEEDED
+
+    assert await server.graceful_shutdown()
+
+
+async def test_set_bounds_timeout(mocker: MockerFixture) -> None:
+    """Test if the set_power() method properly raises a timeout AioRpcError."""
+    servicer = MockMicrogridServicer()
+
+    def mock_add_inclusion_bounds(
+        request: SetBoundsParam, context: Any  # pylint: disable=unused-argument
+    ) -> Timestamp:
+        time.sleep(GRPC_SERVER_DELAY)
+        return Timestamp()
+
+    mocker.patch.object(servicer, "AddInclusionBounds", mock_add_inclusion_bounds)
+    server = MockGrpcServer(servicer, port=57809)
+    await server.start()
+
+    target = "[::]:57809"
+    grpc_channel = grpc.aio.insecure_channel(target)
+    client = ApiClient(grpc_channel=grpc_channel, target=target)
+
+    bounds_values = [{"lower": 0.0, "upper": 100.0}, {"lower": -10.0, "upper": 1.0}]
+
+    for bounds in bounds_values:
+        with pytest.raises(grpc.aio.AioRpcError) as err_ctx:
+            await client.set_bounds(component_id=1, **bounds)
         assert err_ctx.value.code() == grpc.StatusCode.DEADLINE_EXCEEDED
 
     assert await server.graceful_shutdown()
