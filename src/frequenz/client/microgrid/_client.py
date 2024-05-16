@@ -68,7 +68,7 @@ class ApiClient:
         self,
         grpc_channel: grpc.aio.Channel,
         target: str,
-        retry_strategy: retry.Strategy = retry.LinearBackoff(),
+        retry_strategy: retry.Strategy | None = None,
     ) -> None:
         """Initialize the class instance.
 
@@ -77,7 +77,8 @@ class ApiClient:
             target: server (host:port) to be used for asyncio-supporting gRPC
                 channel that the client should use to contact the API
             retry_strategy: The retry strategy to use to reconnect when the connection
-                to the streaming method is lost.
+                to the streaming method is lost. By default a linear backoff strategy
+                is used.
         """
         self.target = target
         """The location (as "host:port") of the microgrid API gRPC server."""
