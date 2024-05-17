@@ -12,7 +12,7 @@ import grpclib
 import grpclib.client
 from betterproto.lib.google import protobuf as pb_google
 from frequenz.channels import Receiver
-from frequenz.client.base import retry, streaming
+from frequenz.client.base import channel, retry, streaming
 from frequenz.microgrid.betterproto.frequenz.api import microgrid as pb_microgrid
 from frequenz.microgrid.betterproto.frequenz.api.common import (
     components as pb_components,
@@ -48,32 +48,40 @@ _logger = logging.getLogger(__name__)
 
 
 class ApiClient:
-    """Microgrid API client implementation using gRPC as the underlying protocol."""
+    """A microgrid API client."""
 
     def __init__(
         self,
-        grpc_channel: grpclib.client.Channel,
-        target: str,
+        server_url: str,
+        *,
         retry_strategy: retry.Strategy | None = None,
     ) -> None:
         """Initialize the class instance.
 
         Args:
-            grpc_channel: asyncio-supporting gRPC channel
-            target: server (host:port) to be used for asyncio-supporting gRPC
-                channel that the client should use to contact the API
+            server_url: The location of the microgrid API server in the form of a URL.
+                The following format is expected:
+                "grpc://hostname{:`port`}{?ssl=`ssl`}",
+                where the `port` should be an int between 0 and 65535 (defaulting to
+                9090) and `ssl` should be a boolean (defaulting to `false`).
+                For example: `grpc://localhost:1090?ssl=true`.
             retry_strategy: The retry strategy to use to reconnect when the connection
                 to the streaming method is lost. By default a linear backoff strategy
                 is used.
         """
-        self.target = target
-        """The location (as "host:port") of the microgrid API gRPC server."""
+        self._server_url = server_url
+        """The location of the microgrid API server as a URL."""
 
-        self.api = pb_microgrid.MicrogridStub(grpc_channel)
+        self.api = pb_microgrid.MicrogridStub(channel.parse_grpc_uri(server_url))
         """The gRPC stub for the microgrid API."""
 
         self._broadcasters: dict[int, streaming.GrpcStreamBroadcaster[Any, Any]] = {}
         self._retry_strategy = retry_strategy
+
+    @property
+    def server_url(self) -> str:
+        """The server location in URL format."""
+        return self._server_url
 
     async def components(self) -> Iterable[Component]:
         """Fetch all the components present in the microgrid.
@@ -93,7 +101,7 @@ class ApiClient:
 
         except grpclib.GRPCError as err:
             raise ClientError(
-                f"Failed to list components. Microgrid API: {self.target}. Err: {err}"
+                f"Failed to list components. Microgrid API: {self._server_url}. Err: {err}"
             ) from err
 
         components_only = filter(
@@ -176,7 +184,7 @@ class ApiClient:
             )
         except grpclib.GRPCError as err:
             raise ClientError(
-                f"Failed to list connections. Microgrid API: {self.target}. Err: {err}"
+                f"Failed to list connections. Microgrid API: {self._server_url}. Err: {err}"
             ) from err
         # Filter out the components filtered in `components` method.
         # id=0 is an exception indicating grid component.
@@ -388,7 +396,7 @@ class ApiClient:
             )
         except grpclib.GRPCError as err:
             raise ClientError(
-                f"Failed to set power. Microgrid API: {self.target}. Err: {err}"
+                f"Failed to set power. Microgrid API: {self._server_url}. Err: {err}"
             ) from err
 
     async def set_bounds(
@@ -410,7 +418,7 @@ class ApiClient:
             ClientError: If the connection to the Microgrid API cannot be established or
                 when the api call exceeded the timeout.
         """
-        api_details = f"Microgrid API: {self.target}."
+        api_details = f"Microgrid API: {self._server_url}."
         if upper < 0:
             raise ValueError(f"Upper bound {upper} must be greater than or equal to 0.")
         if lower > 0:
@@ -437,6 +445,6 @@ class ApiClient:
                 err,
             )
             raise ClientError(
-                f"Failed to set inclusion bounds. Microgrid API: {self.target}. "
+                f"Failed to set inclusion bounds. Microgrid API: {self._server_url}. "
                 f"Err: {err}"
             ) from err
