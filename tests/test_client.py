@@ -57,11 +57,8 @@ from frequenz.client.microgrid._connection import Connection
 
 class _TestClient(ApiClient):
     def __init__(self, *, retry_strategy: retry.Strategy | None = None) -> None:
-        mock_channel = mock.MagicMock(name="channel", spec=grpclib.client.Channel)
         mock_stub = mock.MagicMock(name="stub", spec=microgrid.MicrogridStub)
-        target = "mock_host:1234"
-        super().__init__(mock_channel, target, retry_strategy)
-        self.mock_channel = mock_channel
+        super().__init__("grpc://mock_host:1234", retry_strategy=retry_strategy)
         self.mock_stub = mock_stub
         self.api = mock_stub
 
@@ -215,7 +212,8 @@ async def test_components_grpc_error() -> None:
     )
     with pytest.raises(
         ClientError,
-        match="Failed to list components. Microgrid API: mock_host:1234. Err: .*fake grpc error",
+        match="Failed to list components. Microgrid API: grpc://mock_host:1234. "
+        "Err: .*fake grpc error",
     ):
         await client.components()
 
@@ -354,7 +352,8 @@ async def test_connections_grpc_error() -> None:
     )
     with pytest.raises(
         ClientError,
-        match="Failed to list connections. Microgrid API: mock_host:1234. Err: .*fake grpc error",
+        match="Failed to list connections. Microgrid API: grpc://mock_host:1234. "
+        "Err: .*fake grpc error",
     ):
         await client.connections()
 
@@ -569,7 +568,8 @@ async def test_set_power_grpc_error() -> None:
     )
     with pytest.raises(
         ClientError,
-        match="Failed to set power. Microgrid API: mock_host:1234. Err: .*fake grpc error",
+        match="Failed to set power. Microgrid API: grpc://mock_host:1234. "
+        "Err: .*fake grpc error",
     ):
         await client.set_power(component_id=83, power_w=100.0)
 
@@ -634,7 +634,7 @@ async def test_set_bounds_grpc_error() -> None:
     )
     with pytest.raises(
         ClientError,
-        match="Failed to set inclusion bounds. Microgrid API: mock_host:1234. "
+        match="Failed to set inclusion bounds. Microgrid API: grpc://mock_host:1234. "
         "Err: .*fake grpc error",
     ):
         await client.set_bounds(99, 0.0, 100.0)
