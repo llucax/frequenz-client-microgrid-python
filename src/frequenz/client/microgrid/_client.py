@@ -50,6 +50,7 @@ from ._component_data import (
 )
 from ._connection import Connection
 from ._constants import RECEIVER_MAX_SIZE
+from ._exception import ClientError
 from ._metadata import Location, Metadata
 
 DEFAULT_GRPC_CALL_TIMEOUT = 60.0
@@ -96,8 +97,8 @@ class ApiClient:
             Iterator whose elements are all the components in the microgrid.
 
         Raises:
-            AioRpcError: if connection to Microgrid API cannot be established or
-                when the api call exceeded timeout
+            ClientError: If the connection to the Microgrid API cannot be established or
+                when the api call exceeded the timeout.
         """
         try:
             # grpc.aio is missing types and mypy thinks this is not awaitable,
@@ -111,21 +112,9 @@ class ApiClient:
             )
 
         except grpc.aio.AioRpcError as err:
-            msg = f"Failed to list components. Microgrid API: {self.target}. Err: {err.details()}"
-            raise grpc.aio.AioRpcError(
-                code=err.code(),
-                initial_metadata=err.initial_metadata(),
-                # We need to ignore these errors for some reason, otherwise we get this
-                # mypy error:
-                #   Argument "trailing_metadata" to "AioRpcError" has incompatible type
-                #   "tuple[_Metadatum, ...]"; expected "Metadata"
-                # According to grpc.aio documentation, both should have the type
-                # Metadata.
-                # https://grpc.github.io/grpc/python/grpc_asyncio.html#grpc.aio.AioRpcError
-                trailing_metadata=err.trailing_metadata(),  # type: ignore[arg-type]
-                details=msg,
-                debug_error_string=err.debug_error_string(),
-            )
+            raise ClientError(
+                f"Failed to list components. Microgrid API: {self.target}. Err: {err.details()}"
+            ) from err
         components_only = filter(
             lambda c: c.category is not PbComponentCategory.COMPONENT_CATEGORY_SENSOR,
             component_list.components,
@@ -192,8 +181,8 @@ class ApiClient:
             Microgrid connections matching the provided start and end filters.
 
         Raises:
-            AioRpcError: if connection to Microgrid API cannot be established or
-                when the api call exceeded timeout
+            ClientError: If the connection to the Microgrid API cannot be established or
+                when the api call exceeded the timeout.
         """
         connection_filter = PbConnectionFilter(starts=starts, ends=ends)
         try:
@@ -210,15 +199,9 @@ class ApiClient:
                 ),
             )
         except grpc.aio.AioRpcError as err:
-            msg = f"Failed to list connections. Microgrid API: {self.target}. Err: {err.details()}"
-            raise grpc.aio.AioRpcError(
-                code=err.code(),
-                initial_metadata=err.initial_metadata(),
-                # See the comment in def components() for why we need to ignore
-                trailing_metadata=err.trailing_metadata(),  # type: ignore[arg-type]
-                details=msg,
-                debug_error_string=err.debug_error_string(),
-            )
+            raise ClientError(
+                f"Failed to list connections. Microgrid API: {self.target}. Err: {err.details()}"
+            ) from err
         # Filter out the components filtered in `components` method.
         # id=0 is an exception indicating grid component.
         valid_ids = {c.component_id for c in valid_components}
@@ -422,8 +405,8 @@ class ApiClient:
             power_w: power to set for the component.
 
         Raises:
-            AioRpcError: if connection to Microgrid API cannot be established or
-                when the api call exceeded timeout
+            ClientError: If the connection to the Microgrid API cannot be established or
+                when the api call exceeded the timeout.
         """
         try:
             await cast(
@@ -434,15 +417,9 @@ class ApiClient:
                 ),
             )
         except grpc.aio.AioRpcError as err:
-            msg = f"Failed to set power. Microgrid API: {self.target}. Err: {err.details()}"
-            raise grpc.aio.AioRpcError(
-                code=err.code(),
-                initial_metadata=err.initial_metadata(),
-                # See the comment in def components() for why we need to ignore
-                trailing_metadata=err.trailing_metadata(),  # type: ignore[arg-type]
-                details=msg,
-                debug_error_string=err.debug_error_string(),
-            )
+            raise ClientError(
+                f"Failed to set power. Microgrid API: {self.target}. Err: {err.details()}"
+            ) from err
 
     async def set_bounds(
         self,
@@ -460,8 +437,8 @@ class ApiClient:
         Raises:
             ValueError: when upper bound is less than 0, or when lower bound is
                 greater than 0.
-            grpc.aio.AioRpcError: if connection to Microgrid API cannot be established
-                or when the api call exceeded timeout
+            ClientError: If the connection to the Microgrid API cannot be established or
+                when the api call exceeded the timeout.
         """
         api_details = f"Microgrid API: {self.target}."
         if upper < 0:
@@ -490,4 +467,7 @@ class ApiClient:
                 api_details,
                 err.details(),
             )
-            raise
+            raise ClientError(
+                f"Failed to set inclusion bounds. Microgrid API: {self.target}. "
+                f"Err: {err.details()}"
+            ) from err

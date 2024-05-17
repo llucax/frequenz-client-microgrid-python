@@ -27,11 +27,13 @@ from ._component_data import (
 )
 from ._component_states import EVChargerCableState, EVChargerComponentState
 from ._connection import Connection
+from ._exception import ClientError
 from ._metadata import Location, Metadata
 
 __all__ = [
     "ApiClient",
     "BatteryData",
+    "ClientError",
     "Component",
     "ComponentCategory",
     "ComponentData",
