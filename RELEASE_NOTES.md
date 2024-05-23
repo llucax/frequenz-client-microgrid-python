@@ -7,7 +7,8 @@
 ## Upgrading
 
 - The client is now using [`grpclib`](https://pypi.org/project/grpclib/) to connect to the server instead of [`grpcio`](https://pypi.org/project/grpcio/). You might need to adapt the way you connect to the server in your code, using `grpcio.client.Channel`.
-- The client now doesn't raise `grpc.aio.RpcError` exceptions anymore. Instead, it raises `ClientError` exceptions that have the `grpc.aio.RpcError` as their `__cause__`. You might need to adapt your error handling code to catch `ClientError` exceptions instead of `grpc.aio.RpcError` exceptions.
+- The client now doesn't raise `grpc.aio.RpcError` exceptions anymore. Instead, it raises `ClientError` exceptions that have the `grpclib.GRPCError` as their `__cause__`. You might need to adapt your error handling code to catch `ClientError` exceptions instead of `grpc.aio.RpcError` exceptions.
+- The client now uses protobuf/grpc bindings generated [betterproto](https://github.com/danielgtaylor/python-betterproto) instead of [grpcio](https://pypi.org/project/grpcio/). If you were using the bindings directly, you might need to do some minor adjustments to your code.
 
 ## New Features
 
