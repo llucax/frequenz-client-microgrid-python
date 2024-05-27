@@ -200,7 +200,7 @@ class UnknownError(GrpcStatusError):
         )
 
 
-class InvalidArgument(GrpcStatusError):
+class InvalidArgument(GrpcStatusError, ValueError):
     """The client specified an invalid argument.
 
     Note that this error differs from
