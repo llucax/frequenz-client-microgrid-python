@@ -70,7 +70,7 @@ class ClientError(Exception):
 
         Returns:
             An instance of
-                [GrpcStatusError][frequenz.client.microgrid.error.GrpcStatusError] if
+                [GrpcStatusError][frequenz.client.microgrid.GrpcStatusError] if
                 the gRPC status is not recognized, or an appropriate subclass if it is.
         """
 
@@ -203,9 +203,9 @@ class InvalidArgument(GrpcStatusError, ValueError):
     """The client specified an invalid argument.
 
     Note that this error differs from
-    [FailedPrecondition][frequenz.client.microgrid.error.FailedPrecondition]. This error
-    indicates arguments that are problematic regardless of the state of the system
-    (e.g., a malformed file name).
+    [OperationPreconditionFailed][frequenz.client.microgrid.OperationPreconditionFailed].
+    This error indicates arguments that are problematic regardless of the state of the
+    system (e.g., a malformed file name).
     """
 
     def __init__(
@@ -259,7 +259,7 @@ class EntityNotFound(GrpcStatusError):
     """The requested entity was not found.
 
     Note that this error differs from
-    [PermissionDenied][frequenz.client.microgrid.error.PermissionDenied]. This error is
+    [PermissionDenied][frequenz.client.microgrid.PermissionDenied]. This error is
     used when the requested entity is not found, regardless of the user's permissions.
     """
 
@@ -310,8 +310,8 @@ class PermissionDenied(GrpcStatusError):
     Note that when the operation is rejected due to other reasons, such as the resources
     being exhausted or the user not being authenticated at all, different errors should
     be catched instead
-    ([ResourceExhausted][frequenz.client.microgrid.error.ResourceExhausted] and
-    [OperationUnauthenticated][frequenz.client.microgrid.error.OperationUnauthenticated]
+    ([ResourceExhausted][frequenz.client.microgrid.ResourceExhausted] and
+    [OperationUnauthenticated][frequenz.client.microgrid.OperationUnauthenticated]
      respectively).
     """
 
@@ -414,13 +414,13 @@ class OperationAborted(GrpcStatusError):
 class OperationOutOfRange(GrpcStatusError):
     """The operation was attempted past the valid range.
 
-    Unlike [InvalidArgument][frequenz.client.microgrid.error.InvalidArgument], this
+    Unlike [InvalidArgument][frequenz.client.microgrid.InvalidArgument], this
     error indicates a problem that may be fixed if the system state changes.
 
     There is a fair bit of overlap with
-    [FailedPrecondition][frequenz.client.microgrid.error.FailedPrecondition], this error
-    is just a more specific version of that error and could be the result of an
-    operation that doesn't even take any arguments.
+    [OperationPreconditionFailed][frequenz.client.microgrid.OperationPreconditionFailed],
+    this error is just a more specific version of that error and could be the result of
+    an operation that doesn't even take any arguments.
     """
 
     def __init__(
