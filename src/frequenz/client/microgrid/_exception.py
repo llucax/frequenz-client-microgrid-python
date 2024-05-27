@@ -11,7 +11,13 @@ import grpclib
 
 
 class ClientError(Exception):
-    """There was an error in the microgrid API client."""
+    """There was an error in the microgrid API client.
+
+    To simplify retrying, errors are classified as
+    [retryable][frequenz.client.microgrid.ClientError.is_retryable], or not. Retryable
+    errors might succeed if retried, while permanent errors won't. When uncertain,
+    errors are assumed to be retryable.
+    """
 
     def __init__(
         self,
@@ -19,6 +25,7 @@ class ClientError(Exception):
         server_url: str,
         operation: str,
         description: str,
+        retryable: bool,
     ) -> None:
         """Create a new instance.
 
@@ -26,6 +33,7 @@ class ClientError(Exception):
             server_url: The URL of the server that returned the error.
             operation: The operation that caused the error.
             description: A human-readable description of the error.
+            retryable: Whether retrying the operation might succeed.
         """
         super().__init__(
             f"Failed calling {operation!r} on {server_url!r}: {description}"
@@ -39,6 +47,9 @@ class ClientError(Exception):
 
         self.description = description
         """The human-readable description of the error."""
+
+        self.is_retryable = retryable
+        """Whether retrying the operation might succeed."""
 
     @classmethod
     def from_grpc_error(
@@ -55,6 +66,7 @@ class ClientError(Exception):
             server_url: The URL of the server that returned the error.
             operation: The operation that caused the error.
             grpc_error: The gRPC error to convert.
+            retryable: Whether retrying the operation might succeed.
 
         Returns:
             An instance of
@@ -97,6 +109,7 @@ class ClientError(Exception):
             operation=operation,
             description="Got an unrecognized status code",
             grpc_error=grpc_error,
+            retryable=retryable,
         )
 
 
@@ -111,13 +124,14 @@ class GrpcStatusError(ClientError):
            codes](https://github.com/grpc/grpc/blob/master/doc/statuscodes.md)
     """
 
-    def __init__(
+    def __init__(  # pylint: disable=too-many-arguments
         self,
         *,
         server_url: str,
         operation: str,
         description: str,
         grpc_error: grpclib.GRPCError,
+        retryable: bool,
     ) -> None:
         """Create a new instance.
 
@@ -126,6 +140,7 @@ class GrpcStatusError(ClientError):
             operation: The operation that caused the error.
             description: A human-readable description of the error.
             grpc_error: The gRPC error originating this exception.
+            retryable: Whether retrying the operation might succeed.
         """
         message = f": {grpc_error.message}" if grpc_error.message else ""
         details = f" ({grpc_error.details})" if grpc_error.details else ""
@@ -133,6 +148,7 @@ class GrpcStatusError(ClientError):
             server_url=server_url,
             operation=operation,
             description=f"{description} <status={grpc_error.status.name}>{message}{details}",
+            retryable=retryable,
         )
         self.description = description
 
@@ -158,6 +174,7 @@ class OperationCancelled(GrpcStatusError):
             operation=operation,
             description="The operation was cancelled",
             grpc_error=grpc_error,
+            retryable=True,
         )
 
 
@@ -179,6 +196,7 @@ class UnknownError(GrpcStatusError):
             operation=operation,
             description="There was an error that can't be described using other statuses",
             grpc_error=grpc_error,
+            retryable=True,  # We don't know so we assume it's retryable
         )
 
 
@@ -206,6 +224,7 @@ class InvalidArgument(GrpcStatusError):
             operation=operation,
             description="The client specified an invalid argument",
             grpc_error=grpc_error,
+            retryable=False,
         )
 
 
@@ -233,6 +252,7 @@ class OperationTimedOut(GrpcStatusError):
             description="The time limit was exceeded while waiting for the operation "
             "to complete",
             grpc_error=grpc_error,
+            retryable=True,
         )
 
 
@@ -259,6 +279,7 @@ class EntityNotFound(GrpcStatusError):
             operation=operation,
             description="The requested entity was not found",
             grpc_error=grpc_error,
+            retryable=True,  # If the entity is added later it might succeed
         )
 
 
@@ -280,6 +301,7 @@ class EntityAlreadyExists(GrpcStatusError):
             operation=operation,
             description="The entity that we attempted to create already exists",
             grpc_error=grpc_error,
+            retryable=True,  # If the entity is deleted later it might succeed
         )
 
 
@@ -310,6 +332,7 @@ class PermissionDenied(GrpcStatusError):
             description="The caller does not have permission to execute the specified "
             "operation",
             grpc_error=grpc_error,
+            retryable=True,  # If the user is granted permission it might succeed
         )
 
 
@@ -332,6 +355,7 @@ class ResourceExhausted(GrpcStatusError):
             description="Some resource has been exhausted (for example per-user quota, "
             "disk space, etc.)",
             grpc_error=grpc_error,
+            retryable=True,  # If the resource is freed it might succeed
         )
 
 
@@ -359,6 +383,7 @@ class OperationPreconditionFailed(GrpcStatusError):
             description="The operation was rejected because the system is not in a "
             "required state",
             grpc_error=grpc_error,
+            retryable=True,  # If the system state changes it might succeed
         )
 
 
@@ -383,6 +408,7 @@ class OperationAborted(GrpcStatusError):
             operation=operation,
             description="The operation was aborted",
             grpc_error=grpc_error,
+            retryable=True,
         )
 
 
@@ -413,6 +439,7 @@ class OperationOutOfRange(GrpcStatusError):
             operation=operation,
             description="The operation was attempted past the valid range",
             grpc_error=grpc_error,
+            retryable=True,  # If the system state changes it might succeed
         )
 
 
@@ -435,6 +462,7 @@ class OperationNotImplemented(GrpcStatusError):
             description="The operation is not implemented or not supported/enabled in "
             "this service",
             grpc_error=grpc_error,
+            retryable=False,
         )
 
 
@@ -460,6 +488,7 @@ class InternalError(GrpcStatusError):
             description="Some invariants expected by the underlying system have been "
             "broken",
             grpc_error=grpc_error,
+            retryable=True,  # If the system state changes it might succeed
         )
 
 
@@ -485,6 +514,7 @@ class ServiceUnavailable(GrpcStatusError):
             operation=operation,
             description="The service is currently unavailable",
             grpc_error=grpc_error,
+            retryable=True,  # If the service becomes available it might succeed
         )
 
 
@@ -506,6 +536,7 @@ class DataLoss(GrpcStatusError):
             operation=operation,
             description="Unrecoverable data loss or corruption",
             grpc_error=grpc_error,
+            retryable=False,
         )
 
 
@@ -528,4 +559,5 @@ class OperationUnauthenticated(GrpcStatusError):
             description="The request does not have valid authentication credentials "
             "for the operation",
             grpc_error=grpc_error,
+            retryable=False,
         )
