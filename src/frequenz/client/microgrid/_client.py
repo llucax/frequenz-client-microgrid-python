@@ -90,19 +90,21 @@ class ApiClient:
             Iterator whose elements are all the components in the microgrid.
 
         Raises:
-            ClientError: If the connection to the Microgrid API cannot be established or
-                when the api call exceeded the timeout.
+            ClientError: If the are any errors communicating with the Microgrid API,
+                most likely a subclass of
+                [GrpcStatusError][frequenz.client.microgrid.GrpcStatusError].
         """
         try:
             component_list = await self.api.list_components(
                 pb_microgrid.ComponentFilter(),
                 timeout=int(DEFAULT_GRPC_CALL_TIMEOUT),
             )
-
-        except grpclib.GRPCError as err:
-            raise ClientError(
-                f"Failed to list components. Microgrid API: {self._server_url}. Err: {err}"
-            ) from err
+        except grpclib.GRPCError as grpc_error:
+            raise ClientError.from_grpc_error(
+                server_url=self._server_url,
+                operation="list_components",
+                grpc_error=grpc_error,
+            ) from grpc_error
 
         components_only = filter(
             lambda c: c.category
@@ -168,8 +170,9 @@ class ApiClient:
             Microgrid connections matching the provided start and end filters.
 
         Raises:
-            ClientError: If the connection to the Microgrid API cannot be established or
-                when the api call exceeded the timeout.
+            ClientError: If the are any errors communicating with the Microgrid API,
+                most likely a subclass of
+                [GrpcStatusError][frequenz.client.microgrid.GrpcStatusError].
         """
         connection_filter = pb_microgrid.ConnectionFilter(
             starts=list(starts), ends=list(ends)
@@ -182,10 +185,12 @@ class ApiClient:
                     timeout=int(DEFAULT_GRPC_CALL_TIMEOUT),
                 ),
             )
-        except grpclib.GRPCError as err:
-            raise ClientError(
-                f"Failed to list connections. Microgrid API: {self._server_url}. Err: {err}"
-            ) from err
+        except grpclib.GRPCError as grpc_error:
+            raise ClientError.from_grpc_error(
+                server_url=self._server_url,
+                operation="list_connections",
+                grpc_error=grpc_error,
+            ) from grpc_error
         # Filter out the components filtered in `components` method.
         # id=0 is an exception indicating grid component.
         valid_ids = {c.component_id for c in valid_components}
@@ -384,8 +389,9 @@ class ApiClient:
             power_w: power to set for the component.
 
         Raises:
-            ClientError: If the connection to the Microgrid API cannot be established or
-                when the api call exceeded the timeout.
+            ClientError: If the are any errors communicating with the Microgrid API,
+                most likely a subclass of
+                [GrpcStatusError][frequenz.client.microgrid.GrpcStatusError].
         """
         try:
             await self.api.set_power_active(
@@ -394,10 +400,12 @@ class ApiClient:
                 ),
                 timeout=int(DEFAULT_GRPC_CALL_TIMEOUT),
             )
-        except grpclib.GRPCError as err:
-            raise ClientError(
-                f"Failed to set power. Microgrid API: {self._server_url}. Err: {err}"
-            ) from err
+        except grpclib.GRPCError as grpc_error:
+            raise ClientError.from_grpc_error(
+                server_url=self._server_url,
+                operation="set_power_active",
+                grpc_error=grpc_error,
+            ) from grpc_error
 
     async def set_bounds(
         self,
@@ -415,10 +423,10 @@ class ApiClient:
         Raises:
             ValueError: when upper bound is less than 0, or when lower bound is
                 greater than 0.
-            ClientError: If the connection to the Microgrid API cannot be established or
-                when the api call exceeded the timeout.
+            ClientError: If the are any errors communicating with the Microgrid API,
+                most likely a subclass of
+                [GrpcStatusError][frequenz.client.microgrid.GrpcStatusError].
         """
-        api_details = f"Microgrid API: {self._server_url}."
         if upper < 0:
             raise ValueError(f"Upper bound {upper} must be greater than or equal to 0.")
         if lower > 0:
@@ -436,15 +444,9 @@ class ApiClient:
                 ),
                 timeout=int(DEFAULT_GRPC_CALL_TIMEOUT),
             )
-        except grpclib.GRPCError as err:
-            _logger.error(
-                "set_bounds write failed: %s, for message: %s, api: %s. Err: %s",
-                err,
-                next,
-                api_details,
-                err,
-            )
-            raise ClientError(
-                f"Failed to set inclusion bounds. Microgrid API: {self._server_url}. "
-                f"Err: {err}"
-            ) from err
+        except grpclib.GRPCError as grpc_error:
+            raise ClientError.from_grpc_error(
+                server_url=self._server_url,
+                operation="add_inclusion_bounds",
+                grpc_error=grpc_error,
+            ) from grpc_error
