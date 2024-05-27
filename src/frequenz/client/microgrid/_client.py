@@ -92,7 +92,7 @@ class ApiClient:
         Raises:
             ClientError: If the are any errors communicating with the Microgrid API,
                 most likely
-                a [GrpcStatusError][frequenz.client.microgrid.exception.GrpcStatusError].
+                a [GrpcStatusError][frequenz.client.microgrid.GrpcStatusError].
         """
         try:
             component_list = await self.api.list_components(
@@ -172,7 +172,7 @@ class ApiClient:
         Raises:
             ClientError: If the are any errors communicating with the Microgrid API,
                 most likely
-                a [GrpcStatusError][frequenz.client.microgrid.exception.GrpcStatusError].
+                a [GrpcStatusError][frequenz.client.microgrid.GrpcStatusError].
         """
         connection_filter = pb_microgrid.ConnectionFilter(
             starts=list(starts), ends=list(ends)
@@ -391,7 +391,7 @@ class ApiClient:
         Raises:
             ClientError: If the are any errors communicating with the Microgrid API,
                 most likely
-                a [GrpcStatusError][frequenz.client.microgrid.exception.GrpcStatusError].
+                a [GrpcStatusError][frequenz.client.microgrid.GrpcStatusError].
         """
         try:
             await self.api.set_power_active(
@@ -425,7 +425,7 @@ class ApiClient:
                 greater than 0.
             ClientError: If the are any errors communicating with the Microgrid API,
                 most likely
-                a [GrpcStatusError][frequenz.client.microgrid.exception.GrpcStatusError].
+                a [GrpcStatusError][frequenz.client.microgrid.GrpcStatusError].
         """
         if upper < 0:
             raise ValueError(f"Upper bound {upper} must be greater than or equal to 0.")
