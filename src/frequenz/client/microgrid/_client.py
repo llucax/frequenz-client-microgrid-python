@@ -19,13 +19,7 @@ from frequenz.microgrid.betterproto.frequenz.api.common import (
 )
 from frequenz.microgrid.betterproto.frequenz.api.common import metrics as pb_metrics
 
-from ._component import (
-    Component,
-    ComponentCategory,
-    component_category_from_protobuf,
-    component_metadata_from_protobuf,
-    component_type_from_protobuf,
-)
+from ._component import Component, ComponentCategory
 from ._component_data import (
     BatteryData,
     ComponentData,
@@ -37,6 +31,11 @@ from ._connection import Connection
 from ._constants import RECEIVER_MAX_SIZE
 from ._exception import ClientError
 from ._metadata import Location, Metadata
+from ._protobuf import (
+    _component_category_from_protobuf,
+    _component_metadata_from_protobuf,
+    _component_type_from_protobuf,
+)
 
 DEFAULT_GRPC_CALL_TIMEOUT = 60.0
 """The default timeout for gRPC calls made by this client (in seconds)."""
@@ -114,9 +113,9 @@ class ApiClient:
         result: Iterable[Component] = map(
             lambda c: Component(
                 c.id,
-                component_category_from_protobuf(c.category),
-                component_type_from_protobuf(c.category, c.inverter),
-                component_metadata_from_protobuf(c.category, c.grid),
+                _component_category_from_protobuf(c.category),
+                _component_type_from_protobuf(c.category, c.inverter),
+                _component_metadata_from_protobuf(c.category, c.grid),
             ),
             components_only,
         )

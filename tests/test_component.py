@@ -9,58 +9,58 @@ from frequenz.microgrid.betterproto.frequenz.api.common import components
 from frequenz.client.microgrid._component import (
     Component,
     ComponentCategory,
-    component_category_from_protobuf,
+    _component_category_from_protobuf,
 )
 
 
 def test_component_category_from_protobuf() -> None:
     """Test the creating component category from protobuf."""
     assert (
-        component_category_from_protobuf(
+        _component_category_from_protobuf(
             components.ComponentCategory.COMPONENT_CATEGORY_UNSPECIFIED
         )
         == ComponentCategory.NONE
     )
 
     assert (
-        component_category_from_protobuf(
+        _component_category_from_protobuf(
             components.ComponentCategory.COMPONENT_CATEGORY_GRID
         )
         == ComponentCategory.GRID
     )
 
     assert (
-        component_category_from_protobuf(
+        _component_category_from_protobuf(
             components.ComponentCategory.COMPONENT_CATEGORY_METER
         )
         == ComponentCategory.METER
     )
 
     assert (
-        component_category_from_protobuf(
+        _component_category_from_protobuf(
             components.ComponentCategory.COMPONENT_CATEGORY_INVERTER
         )
         == ComponentCategory.INVERTER
     )
 
     assert (
-        component_category_from_protobuf(
+        _component_category_from_protobuf(
             components.ComponentCategory.COMPONENT_CATEGORY_BATTERY
         )
         == ComponentCategory.BATTERY
     )
 
     assert (
-        component_category_from_protobuf(
+        _component_category_from_protobuf(
             components.ComponentCategory.COMPONENT_CATEGORY_EV_CHARGER
         )
         == ComponentCategory.EV_CHARGER
     )
 
-    assert component_category_from_protobuf(666) == ComponentCategory.NONE  # type: ignore
+    assert _component_category_from_protobuf(666) == ComponentCategory.NONE  # type: ignore
 
     with pytest.raises(ValueError):
-        component_category_from_protobuf(
+        _component_category_from_protobuf(
             components.ComponentCategory.COMPONENT_CATEGORY_SENSOR
         )
 
