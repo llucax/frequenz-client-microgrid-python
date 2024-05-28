@@ -33,27 +33,6 @@ from frequenz.client.microgrid import (
 )
 from frequenz.client.microgrid._connection import Connection
 
-# @contextlib.asynccontextmanager
-# async def _gprc_server(
-#     servicer: mock_api.MockMicrogridServicer | None = None,
-# ) -> AsyncIterator[tuple[mock_api.MockMicrogridServicer, ApiClient]]:
-#     global _CURRENT_PORT  # pylint: disable=global-statement
-#     port = _CURRENT_PORT
-#     _CURRENT_PORT += 1
-#     if servicer is None:
-#         servicer = mock_api.MockMicrogridServicer()
-#     server = mock_api.MockGrpcServer(servicer, port=port)
-#     client = ApiClient(
-#         grpc.aio.insecure_channel(f"[::]:{port}"),
-#         f"[::]:{port}",
-#         retry_strategy=LinearBackoff(interval=0.0, jitter=0.05),
-#     )
-#     await server.start()
-#     try:
-#         yield servicer, client
-#     finally:
-#         assert await server.graceful_shutdown()
-
 
 class _TestClient(ApiClient):
     def __init__(self, *, retry_strategy: retry.Strategy | None = None) -> None:
