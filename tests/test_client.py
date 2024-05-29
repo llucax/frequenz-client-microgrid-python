@@ -33,27 +33,6 @@ from frequenz.client.microgrid import (
 )
 from frequenz.client.microgrid._connection import Connection
 
-# @contextlib.asynccontextmanager
-# async def _gprc_server(
-#     servicer: mock_api.MockMicrogridServicer | None = None,
-# ) -> AsyncIterator[tuple[mock_api.MockMicrogridServicer, ApiClient]]:
-#     global _CURRENT_PORT  # pylint: disable=global-statement
-#     port = _CURRENT_PORT
-#     _CURRENT_PORT += 1
-#     if servicer is None:
-#         servicer = mock_api.MockMicrogridServicer()
-#     server = mock_api.MockGrpcServer(servicer, port=port)
-#     client = ApiClient(
-#         grpc.aio.insecure_channel(f"[::]:{port}"),
-#         f"[::]:{port}",
-#         retry_strategy=LinearBackoff(interval=0.0, jitter=0.05),
-#     )
-#     await server.start()
-#     try:
-#         yield servicer, client
-#     finally:
-#         assert await server.graceful_shutdown()
-
 
 class _TestClient(ApiClient):
     def __init__(self, *, retry_strategy: retry.Strategy | None = None) -> None:
@@ -208,12 +187,13 @@ async def test_components_grpc_error() -> None:
     """Test the components() method when the gRPC call fails."""
     client = _TestClient()
     client.mock_stub.list_components.side_effect = grpclib.GRPCError(
-        mock.MagicMock(name="mock status"), "fake grpc error"
+        mock.MagicMock(name="mock_status"), "fake grpc error", "fake details"
     )
     with pytest.raises(
         ClientError,
-        match="Failed to list components. Microgrid API: grpc://mock_host:1234. "
-        "Err: .*fake grpc error",
+        match=r"Failed calling 'list_components' on 'grpc://mock_host:1234': .* "
+        r"<status=<MagicMock name='mock_status\.name' id='.*'>>: fake grpc error "
+        r"\(fake details\)",
     ):
         await client.components()
 
@@ -348,12 +328,13 @@ async def test_connections_grpc_error() -> None:
     """Test the components() method when the gRPC call fails."""
     client = _TestClient()
     client.mock_stub.list_connections.side_effect = grpclib.GRPCError(
-        mock.MagicMock(name="mock status"), "fake grpc error"
+        mock.MagicMock(name="mock_status"), "fake grpc error", "fake details"
     )
     with pytest.raises(
         ClientError,
-        match="Failed to list connections. Microgrid API: grpc://mock_host:1234. "
-        "Err: .*fake grpc error",
+        match=r"Failed calling 'list_connections' on 'grpc://mock_host:1234': .* "
+        r"<status=<MagicMock name='mock_status\.name' id='.*'>>: fake grpc error "
+        r"\(fake details\)",
     ):
         await client.connections()
 
@@ -564,12 +545,13 @@ async def test_set_power_grpc_error() -> None:
     """Test set_power() raises ClientError when the gRPC call fails."""
     client = _TestClient()
     client.mock_stub.set_power_active.side_effect = grpclib.GRPCError(
-        mock.MagicMock(name="mock status"), "fake grpc error"
+        mock.MagicMock(name="mock_status"), "fake grpc error", "fake details"
     )
     with pytest.raises(
         ClientError,
-        match="Failed to set power. Microgrid API: grpc://mock_host:1234. "
-        "Err: .*fake grpc error",
+        match=r"Failed calling 'set_power_active' on 'grpc://mock_host:1234': .* "
+        r"<status=<MagicMock name='mock_status\.name' id='.*'>>: fake grpc error "
+        r"\(fake details\)",
     ):
         await client.set_power(component_id=83, power_w=100.0)
 
@@ -630,11 +612,12 @@ async def test_set_bounds_grpc_error() -> None:
     """Test the components() method when the gRPC call fails."""
     client = _TestClient()
     client.mock_stub.add_inclusion_bounds.side_effect = grpclib.GRPCError(
-        mock.MagicMock(name="mock status"), "fake grpc error"
+        mock.MagicMock(name="mock_status"), "fake grpc error", "fake details"
     )
     with pytest.raises(
         ClientError,
-        match="Failed to set inclusion bounds. Microgrid API: grpc://mock_host:1234. "
-        "Err: .*fake grpc error",
+        match=r"Failed calling 'add_inclusion_bounds' on 'grpc://mock_host:1234': .* "
+        r"<status=<MagicMock name='mock_status\.name' id='.*'>>: fake grpc error "
+        r"\(fake details\)",
     ):
         await client.set_bounds(99, 0.0, 100.0)

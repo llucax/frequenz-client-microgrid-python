@@ -27,7 +27,27 @@ from ._component_data import (
 )
 from ._component_states import EVChargerCableState, EVChargerComponentState
 from ._connection import Connection
-from ._exception import ClientError
+from ._exception import (
+    ClientError,
+    DataLoss,
+    EntityAlreadyExists,
+    EntityNotFound,
+    GrpcError,
+    InternalError,
+    InvalidArgument,
+    OperationAborted,
+    OperationCancelled,
+    OperationNotImplemented,
+    OperationOutOfRange,
+    OperationPreconditionFailed,
+    OperationTimedOut,
+    OperationUnauthenticated,
+    PermissionDenied,
+    ResourceExhausted,
+    ServiceUnavailable,
+    UnknownError,
+    UnrecognizedGrpcStatus,
+)
 from ._metadata import Location, Metadata
 
 __all__ = [
@@ -41,14 +61,32 @@ __all__ = [
     "ComponentMetricId",
     "ComponentType",
     "Connection",
+    "DataLoss",
     "EVChargerCableState",
     "EVChargerComponentState",
     "EVChargerData",
+    "EntityAlreadyExists",
+    "EntityNotFound",
     "Fuse",
     "GridMetadata",
+    "GrpcError",
+    "InternalError",
+    "InvalidArgument",
     "InverterData",
     "InverterType",
     "Location",
     "Metadata",
     "MeterData",
+    "OperationAborted",
+    "OperationCancelled",
+    "OperationNotImplemented",
+    "OperationOutOfRange",
+    "OperationPreconditionFailed",
+    "OperationTimedOut",
+    "OperationUnauthenticated",
+    "PermissionDenied",
+    "ResourceExhausted",
+    "ServiceUnavailable",
+    "UnknownError",
+    "UnrecognizedGrpcStatus",
 ]
