@@ -15,7 +15,7 @@ from frequenz.client.microgrid import (
     DataLoss,
     EntityAlreadyExists,
     EntityNotFound,
-    GrpcStatusError,
+    GrpcError,
     InternalError,
     InvalidArgument,
     OperationAborted,
@@ -33,15 +33,15 @@ from frequenz.client.microgrid import (
 )
 
 
-class _GrpcStatusErrorCtor(Protocol):
-    """A protocol for the constructor of a subclass of `GrpcStatusError`."""
+class _GrpcErrorCtor(Protocol):
+    """A protocol for the constructor of a subclass of `GrpcErrorCtor`."""
 
     def __call__(
         self, *, server_url: str, operation: str, grpc_error: grpclib.GRPCError
-    ) -> GrpcStatusError: ...
+    ) -> GrpcError: ...
 
 
-ERROR_TUPLES: list[tuple[type[GrpcStatusError], grpclib.Status, str, bool]] = [
+ERROR_TUPLES: list[tuple[type[GrpcError], grpclib.Status, str, bool]] = [
     (
         UnrecognizedGrpcStatus,
         mock.MagicMock(name="unknown_status"),
@@ -146,7 +146,7 @@ ERROR_TUPLES: list[tuple[type[GrpcStatusError], grpclib.Status, str, bool]] = [
     "exception_class, grpc_status, expected_description, retryable", ERROR_TUPLES
 )
 def test_grpc_status_error(
-    exception_class: _GrpcStatusErrorCtor,
+    exception_class: _GrpcErrorCtor,
     grpc_status: grpclib.Status,
     expected_description: str,
     retryable: bool,
@@ -176,7 +176,7 @@ def test_grpc_unknown_status_error() -> None:
         "grpc error message",
         "grpc error details",
     )
-    exception = GrpcStatusError(
+    exception = GrpcError(
         server_url="http://testserver",
         operation="test_operation",
         description=expected_description,
@@ -210,7 +210,7 @@ def test_client_error() -> None:
     "exception_class, grpc_status, expected_description, retryable", ERROR_TUPLES
 )
 def test_from_grpc_error(
-    exception_class: type[GrpcStatusError],
+    exception_class: type[GrpcError],
     grpc_status: grpclib.Status,
     expected_description: str,
     retryable: bool,

@@ -58,7 +58,7 @@ class ClientError(Exception):
         server_url: str,
         operation: str,
         grpc_error: grpclib.GRPCError,
-    ) -> GrpcStatusError:
+    ) -> GrpcError:
         """Create an instance of the appropriate subclass from a gRPC error.
 
         Args:
@@ -68,16 +68,16 @@ class ClientError(Exception):
 
         Returns:
             An instance of
-                [GrpcStatusError][frequenz.client.microgrid.GrpcStatusError] if
+                [GrpcError][frequenz.client.microgrid.GrpcError] if
                 the gRPC status is not recognized, or an appropriate subclass if it is.
         """
 
         class Ctor(Protocol):
-            """A protocol for the constructor of a subclass of `GrpcStatusError`."""
+            """A protocol for the constructor of a subclass of `GrpcError`."""
 
             def __call__(
                 self, *, server_url: str, operation: str, grpc_error: grpclib.GRPCError
-            ) -> GrpcStatusError: ...
+            ) -> GrpcError: ...
 
         status_map: dict[grpclib.Status, Ctor] = {
             grpclib.Status.CANCELLED: OperationCancelled,
@@ -109,11 +109,12 @@ class ClientError(Exception):
         )
 
 
-class GrpcStatusError(ClientError):
-    """The gRPC server returned an error status code.
+class GrpcError(ClientError):
+    """The gRPC server returned an error with a status code.
 
     These errors are specific to gRPC. If you want to use the client in
-    a protocol-independent way, you should avoid catching this exception.
+    a protocol-independent way, you should avoid catching this exception. Catching
+    subclasses that don't have *grpc* in their name should be protocol-independent.
 
     References:
         * [gRPC status
@@ -152,7 +153,7 @@ class GrpcStatusError(ClientError):
         """The original gRPC error."""
 
 
-class UnrecognizedGrpcStatus(GrpcStatusError):
+class UnrecognizedGrpcStatus(GrpcError):
     """The gRPC server returned an unrecognized status code."""
 
     def __init__(
@@ -174,7 +175,7 @@ class UnrecognizedGrpcStatus(GrpcStatusError):
         )
 
 
-class OperationCancelled(GrpcStatusError):
+class OperationCancelled(GrpcError):
     """The operation was cancelled."""
 
     def __init__(
@@ -196,7 +197,7 @@ class OperationCancelled(GrpcStatusError):
         )
 
 
-class UnknownError(GrpcStatusError):
+class UnknownError(GrpcError):
     """There was an error that can't be described using other statuses."""
 
     def __init__(
@@ -218,7 +219,7 @@ class UnknownError(GrpcStatusError):
         )
 
 
-class InvalidArgument(GrpcStatusError, ValueError):
+class InvalidArgument(GrpcError, ValueError):
     """The client specified an invalid argument.
 
     Note that this error differs from
@@ -246,7 +247,7 @@ class InvalidArgument(GrpcStatusError, ValueError):
         )
 
 
-class OperationTimedOut(GrpcStatusError):
+class OperationTimedOut(GrpcError):
     """The time limit was exceeded while waiting for the operationt o complete.
 
     For operations that change the state of the system, this error may be returned even
@@ -274,7 +275,7 @@ class OperationTimedOut(GrpcStatusError):
         )
 
 
-class EntityNotFound(GrpcStatusError):
+class EntityNotFound(GrpcError):
     """The requested entity was not found.
 
     Note that this error differs from
@@ -301,7 +302,7 @@ class EntityNotFound(GrpcStatusError):
         )
 
 
-class EntityAlreadyExists(GrpcStatusError):
+class EntityAlreadyExists(GrpcError):
     """The entity that we attempted to create already exists."""
 
     def __init__(
@@ -323,7 +324,7 @@ class EntityAlreadyExists(GrpcStatusError):
         )
 
 
-class PermissionDenied(GrpcStatusError):
+class PermissionDenied(GrpcError):
     """The caller does not have permission to execute the specified operation.
 
     Note that when the operation is rejected due to other reasons, such as the resources
@@ -354,7 +355,7 @@ class PermissionDenied(GrpcStatusError):
         )
 
 
-class ResourceExhausted(GrpcStatusError):
+class ResourceExhausted(GrpcError):
     """Some resource has been exhausted (for example per-user quota, disk space, etc.)."""
 
     def __init__(
@@ -377,7 +378,7 @@ class ResourceExhausted(GrpcStatusError):
         )
 
 
-class OperationPreconditionFailed(GrpcStatusError):
+class OperationPreconditionFailed(GrpcError):
     """The operation was rejected because the system is not in a required state.
 
     For example, the directory to be deleted is non-empty, an rmdir operation is applied
@@ -405,7 +406,7 @@ class OperationPreconditionFailed(GrpcStatusError):
         )
 
 
-class OperationAborted(GrpcStatusError):
+class OperationAborted(GrpcError):
     """The operation was aborted.
 
     Typically due to a concurrency issue or transaction abort.
@@ -430,7 +431,7 @@ class OperationAborted(GrpcStatusError):
         )
 
 
-class OperationOutOfRange(GrpcStatusError):
+class OperationOutOfRange(GrpcError):
     """The operation was attempted past the valid range.
 
     Unlike [InvalidArgument][frequenz.client.microgrid.InvalidArgument], this
@@ -461,7 +462,7 @@ class OperationOutOfRange(GrpcStatusError):
         )
 
 
-class OperationNotImplemented(GrpcStatusError):
+class OperationNotImplemented(GrpcError):
     """The operation is not implemented or not supported/enabled in this service."""
 
     def __init__(
@@ -484,7 +485,7 @@ class OperationNotImplemented(GrpcStatusError):
         )
 
 
-class InternalError(GrpcStatusError):
+class InternalError(GrpcError):
     """Some invariants expected by the underlying system have been broken.
 
     This error code is reserved for serious errors.
@@ -510,7 +511,7 @@ class InternalError(GrpcStatusError):
         )
 
 
-class ServiceUnavailable(GrpcStatusError):
+class ServiceUnavailable(GrpcError):
     """The service is currently unavailable.
 
     This is most likely a transient condition, which can be corrected by retrying with
@@ -536,7 +537,7 @@ class ServiceUnavailable(GrpcStatusError):
         )
 
 
-class DataLoss(GrpcStatusError):
+class DataLoss(GrpcError):
     """Unrecoverable data loss or corruption."""
 
     def __init__(
@@ -558,7 +559,7 @@ class DataLoss(GrpcStatusError):
         )
 
 
-class OperationUnauthenticated(GrpcStatusError):
+class OperationUnauthenticated(GrpcError):
     """The request does not have valid authentication credentials for the operation."""
 
     def __init__(
