@@ -80,6 +80,9 @@ class EVChargerComponentState(Enum):
     INTERRUPTED = ev_charger.ComponentState.COMPONENT_STATE_INTERRUPTED
     """The component is interrupted."""
 
+    UNKNOWN = ev_charger.ComponentState.COMPONENT_STATE_UNKNOWN
+    """The state is provided by the device, but it is not one of the above states."""
+
     @classmethod
     def from_pb(cls, evc_state: ev_charger.ComponentState) -> Self:
         """Convert a protobuf ComponentState value to EVChargerComponentState enum.
