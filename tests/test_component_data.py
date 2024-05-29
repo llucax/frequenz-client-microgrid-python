@@ -11,7 +11,7 @@ from frequenz.microgrid.betterproto.frequenz.api.common import metrics
 from frequenz.microgrid.betterproto.frequenz.api.common.metrics import electrical
 from frequenz.microgrid.betterproto.frequenz.api.microgrid import inverter
 
-from frequenz.client.microgrid import ComponentData, InverterData
+from frequenz.client.microgrid import ComponentData, InverterData, InverterError
 
 
 def test_component_data_abstract_class() -> None:
@@ -83,9 +83,7 @@ def test_inverter_data() -> None:
     assert (  # pylint: disable=protected-access
         inv_data._component_state == inverter.ComponentState.COMPONENT_STATE_DISCHARGING
     )
-    assert inv_data._errors == [  # pylint: disable=protected-access
-        inverter.Error(msg="error message")
-    ]
+    assert inv_data.errors == [InverterError(message="error message")]
     assert inv_data.frequency == pytest.approx(50.1)
     assert inv_data.active_power == pytest.approx(100.2)
     assert inv_data.active_power_per_phase == pytest.approx((33.1, 33.3, 33.8))
