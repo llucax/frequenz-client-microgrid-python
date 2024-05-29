@@ -128,19 +128,19 @@ class EVChargerCableState(Enum):
     """The cable is plugged into the EV and locked."""
 
     @classmethod
-    def from_pb(cls, evc_state: ev_charger.CableState) -> Self:
-        """Convert a protobuf CableState value to EVChargerCableState enum.
+    def from_pb(cls, state: ev_charger.CableState) -> Self:
+        """Convert a protobuf state value to this enum.
 
         Args:
-            evc_state: protobuf cable state to convert.
+            state: The protobuf cable state to convert.
 
         Returns:
-            Enum value corresponding to the protobuf message.
+            The enum value corresponding to the protobuf message.
         """
-        if not any(t.value == evc_state for t in EVChargerCableState):
+        try:
+            return cls(state)
+        except ValueError:
             return cls(cls.UNSPECIFIED)
-
-        return cls(evc_state)
 
 
 class EVChargerComponentState(Enum):
@@ -179,19 +179,19 @@ class EVChargerComponentState(Enum):
     """The state is provided by the device, but it is not one of the above states."""
 
     @classmethod
-    def from_pb(cls, evc_state: ev_charger.ComponentState) -> Self:
-        """Convert a protobuf ComponentState value to EVChargerComponentState enum.
+    def from_pb(cls, state: ev_charger.ComponentState) -> Self:
+        """Convert a protobuf state value to this enum.
 
         Args:
-            evc_state: protobuf component state to convert.
+            state: The protobuf component state to convert.
 
         Returns:
-            Enum value corresponding to the protobuf message.
+            The enum value corresponding to the protobuf message.
         """
-        if not any(t.value == evc_state for t in EVChargerComponentState):
+        try:
+            return cls(state)
+        except ValueError:
             return cls(cls.UNKNOWN)
-
-        return cls(evc_state)
 
 
 class InverterComponentState(Enum):
