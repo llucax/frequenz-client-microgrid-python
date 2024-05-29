@@ -2,7 +2,7 @@
 
 ## Summary
 
-<!-- Here goes a general summary of what this release is about -->
+This release migrates to use `betterproto` and `grpclib` instead of `grpcio` and `protobuf` internally. It also stops *leaking* these internal libraries to downstream users. It should now be possible to use the client without having to use `grpclib` or `betterproto` directly.
 
 ## Upgrading
 
