@@ -29,6 +29,7 @@ from frequenz.client.microgrid import (
     ResourceExhausted,
     ServiceUnavailable,
     UnknownError,
+    UnrecognizedGrpcStatus,
 )
 
 
@@ -41,6 +42,12 @@ class _GrpcStatusErrorCtor(Protocol):
 
 
 ERROR_TUPLES: list[tuple[type[GrpcStatusError], grpclib.Status, str, bool]] = [
+    (
+        UnrecognizedGrpcStatus,
+        mock.MagicMock(name="unknown_status"),
+        "Got an unrecognized status code",
+        True,
+    ),
     (
         OperationCancelled,
         grpclib.Status.CANCELLED,
@@ -200,16 +207,7 @@ def test_client_error() -> None:
 
 
 @pytest.mark.parametrize(
-    "exception_class, grpc_status, expected_description, retryable",
-    ERROR_TUPLES
-    + [
-        (
-            GrpcStatusError,
-            mock.MagicMock(name="unknown_status"),
-            "Got an unrecognized status code",
-            True,
-        )
-    ],
+    "exception_class, grpc_status, expected_description, retryable", ERROR_TUPLES
 )
 def test_from_grpc_error(
     exception_class: type[GrpcStatusError],

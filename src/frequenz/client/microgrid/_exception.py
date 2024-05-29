@@ -58,7 +58,6 @@ class ClientError(Exception):
         server_url: str,
         operation: str,
         grpc_error: grpclib.GRPCError,
-        retryable: bool = True,
     ) -> GrpcStatusError:
         """Create an instance of the appropriate subclass from a gRPC error.
 
@@ -66,7 +65,6 @@ class ClientError(Exception):
             server_url: The URL of the server that returned the error.
             operation: The operation that caused the error.
             grpc_error: The gRPC error to convert.
-            retryable: Whether retrying the operation might succeed.
 
         Returns:
             An instance of
@@ -104,12 +102,10 @@ class ClientError(Exception):
             return ctor(
                 server_url=server_url, operation=operation, grpc_error=grpc_error
             )
-        return GrpcStatusError(
+        return UnrecognizedGrpcStatus(
             server_url=server_url,
             operation=operation,
-            description="Got an unrecognized status code",
             grpc_error=grpc_error,
-            retryable=retryable,
         )
 
 
@@ -154,6 +150,28 @@ class GrpcStatusError(ClientError):
 
         self.grpc_error = grpc_error
         """The original gRPC error."""
+
+
+class UnrecognizedGrpcStatus(GrpcStatusError):
+    """The gRPC server returned an unrecognized status code."""
+
+    def __init__(
+        self, *, server_url: str, operation: str, grpc_error: grpclib.GRPCError
+    ) -> None:
+        """Create a new instance.
+
+        Args:
+            server_url: The URL of the server that returned the error.
+            operation: The operation that caused the error.
+            grpc_error: The gRPC error originating this exception.
+        """
+        super().__init__(
+            server_url=server_url,
+            operation=operation,
+            description="Got an unrecognized status code",
+            grpc_error=grpc_error,
+            retryable=True,  # We don't know so we assume it's retryable
+        )
 
 
 class OperationCancelled(GrpcStatusError):

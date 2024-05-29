@@ -46,6 +46,7 @@ from ._exception import (
     ResourceExhausted,
     ServiceUnavailable,
     UnknownError,
+    UnrecognizedGrpcStatus,
 )
 from ._metadata import Location, Metadata
 
@@ -87,4 +88,5 @@ __all__ = [
     "ResourceExhausted",
     "ServiceUnavailable",
     "UnknownError",
+    "UnrecognizedGrpcStatus",
 ]
