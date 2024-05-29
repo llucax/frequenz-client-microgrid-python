@@ -94,6 +94,6 @@ class EVChargerComponentState(Enum):
             Enum value corresponding to the protobuf message.
         """
         if not any(t.value == evc_state for t in EVChargerComponentState):
-            return cls(cls.UNSPECIFIED)
+            return cls(cls.UNKNOWN)
 
         return cls(evc_state)
