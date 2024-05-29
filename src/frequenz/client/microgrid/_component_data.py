@@ -173,7 +173,6 @@ class BatteryData(ComponentData):  # pylint: disable=too-many-instance-attribute
     capacity: float
     """The capacity of the battery in Wh (Watt-hour)."""
 
-    # pylint: disable=line-too-long
     power_inclusion_lower_bound: float
     """Lower inclusion bound for battery power in watts.
 
@@ -217,7 +216,6 @@ class BatteryData(ComponentData):  # pylint: disable=too-many-instance-attribute
     [`frequenz.api.common.metrics_pb2.Metric.system_exclusion_bounds`][] for more
     details.
     """
-    # pylint: enable=line-too-long
 
     temperature: float
     """The (average) temperature reported by the battery, in Celsius (°C)."""
@@ -314,7 +312,6 @@ class InverterData(ComponentData):  # pylint: disable=too-many-instance-attribut
        phase/line 1, 2 and 3 respectively.
     """
 
-    # pylint: disable=line-too-long
     active_power_inclusion_lower_bound: float
     """Lower inclusion bound for inverter power in watts.
 
@@ -358,7 +355,6 @@ class InverterData(ComponentData):  # pylint: disable=too-many-instance-attribut
     [`frequenz.api.common.metrics_pb2.Metric.system_exclusion_bounds`][] for more
     details.
     """
-    # pylint: enable=line-too-long
 
     frequency: float
     """AC frequency, in Hertz (Hz)."""
