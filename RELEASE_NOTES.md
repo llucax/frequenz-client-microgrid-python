@@ -16,6 +16,8 @@
 
 - The client now uses protobuf/grpc bindings generated [betterproto](https://github.com/danielgtaylor/python-betterproto) ([frequenz-microgrid-betterproto](https://github.com/frequenz-floss/frequenz-microgrid-betterproto-python)) instead of [grpcio](https://pypi.org/project/grpcio/) ([frequenz-api-microgrid](https://github.com/frequenz-floss/frequenz-api-microgrid)). If you were using the bindings directly, you might need to do some minor adjustments to your code.
 
+- If an unknown EV charger component state is received, it will now be set to `EVChargerComponentState.UNKNOWN` instead of `EVChargerComponentState.UNSPECIFIED`.
+
 ## New Features
 
 - The client now raises more specific exceptions based on the gRPC status code, so you can more easily handle different types of errors.
@@ -38,6 +40,18 @@
       if e.code() == grpc.StatusCode.DEADLINE_EXCEEDED:
          ...
    ```
+
+- We now expose component errors as part of the streamed component data:
+
+   * `BatteryData.errors`
+   * `InverterData.errors`
+
+- We now expose component states as part of the streamed component data:
+
+   * `BatteryData.component_state` and `BatteryData.relay_state`
+   * `InverterData.component_state`
+
+- Added the missing `EVChargerComponentState.UNKNOWN` state.
 
 ## Bug Fixes
 
