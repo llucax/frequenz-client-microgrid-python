@@ -49,7 +49,7 @@ class BatteryComponentState(Enum):
     """The battery is switching off and needs some time to fully shut down."""
 
     UNKNOWN = battery.ComponentState.COMPONENT_STATE_UNKNOWN
-    """The state is provided by the device, but it is not one of the above states."""
+    """A state is provided by the component, but it is not one of the above states."""
 
     @classmethod
     def from_pb(cls, state: battery.ComponentState) -> Self:
@@ -176,7 +176,7 @@ class EVChargerComponentState(Enum):
     """The component is interrupted."""
 
     UNKNOWN = ev_charger.ComponentState.COMPONENT_STATE_UNKNOWN
-    """The state is provided by the device, but it is not one of the above states."""
+    """A state is provided by the component, but it is not one of the above states."""
 
     @classmethod
     def from_pb(cls, state: ev_charger.ComponentState) -> Self:
@@ -237,7 +237,7 @@ class InverterComponentState(Enum):
     """
 
     UNKNOWN = inverter.ComponentState.COMPONENT_STATE_UNKNOWN
-    """The state is provided by the device, but it is not one of the above states."""
+    """A state is provided by the component, but it is not one of the above states."""
 
     @classmethod
     def from_pb(cls, state: inverter.ComponentState) -> Self:
