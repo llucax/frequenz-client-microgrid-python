@@ -9,9 +9,15 @@ from datetime import datetime
 from typing import Self
 
 from frequenz.microgrid.betterproto.frequenz.api import microgrid
-from frequenz.microgrid.betterproto.frequenz.api.microgrid import battery, inverter
 
-from ._component_states import EVChargerCableState, EVChargerComponentState
+from ._component_error import BatteryError, InverterError
+from ._component_states import (
+    BatteryComponentState,
+    BatteryRelayState,
+    EVChargerCableState,
+    EVChargerComponentState,
+    InverterComponentState,
+)
 
 
 @dataclass(frozen=True)
@@ -173,7 +179,6 @@ class BatteryData(ComponentData):  # pylint: disable=too-many-instance-attribute
     capacity: float
     """The capacity of the battery in Wh (Watt-hour)."""
 
-    # pylint: disable=line-too-long
     power_inclusion_lower_bound: float
     """Lower inclusion bound for battery power in watts.
 
@@ -217,18 +222,17 @@ class BatteryData(ComponentData):  # pylint: disable=too-many-instance-attribute
     [`frequenz.api.common.metrics_pb2.Metric.system_exclusion_bounds`][] for more
     details.
     """
-    # pylint: enable=line-too-long
 
     temperature: float
     """The (average) temperature reported by the battery, in Celsius (°C)."""
 
-    _relay_state: battery.RelayState
+    relay_state: BatteryRelayState
     """State of the battery relay."""
 
-    _component_state: battery.ComponentState
+    component_state: BatteryComponentState
     """State of the battery."""
 
-    _errors: list[battery.Error]
+    errors: list[BatteryError]
     """List of errors in protobuf struct."""
 
     @classmethod
@@ -254,9 +258,11 @@ class BatteryData(ComponentData):  # pylint: disable=too-many-instance-attribute
             power_inclusion_upper_bound=raw_power.system_inclusion_bounds.upper,
             power_exclusion_upper_bound=raw_power.system_exclusion_bounds.upper,
             temperature=raw.battery.data.temperature.avg,
-            _relay_state=raw.battery.state.relay_state,
-            _component_state=raw.battery.state.component_state,
-            _errors=list(raw.battery.errors),
+            relay_state=BatteryRelayState.from_pb(raw.battery.state.relay_state),
+            component_state=BatteryComponentState.from_pb(
+                raw.battery.state.component_state
+            ),
+            errors=[BatteryError.from_pb(e) for e in raw.battery.errors],
         )
         battery_data._set_raw(raw=raw)
         return battery_data
@@ -314,7 +320,6 @@ class InverterData(ComponentData):  # pylint: disable=too-many-instance-attribut
        phase/line 1, 2 and 3 respectively.
     """
 
-    # pylint: disable=line-too-long
     active_power_inclusion_lower_bound: float
     """Lower inclusion bound for inverter power in watts.
 
@@ -358,15 +363,14 @@ class InverterData(ComponentData):  # pylint: disable=too-many-instance-attribut
     [`frequenz.api.common.metrics_pb2.Metric.system_exclusion_bounds`][] for more
     details.
     """
-    # pylint: enable=line-too-long
 
     frequency: float
     """AC frequency, in Hertz (Hz)."""
 
-    _component_state: inverter.ComponentState
+    component_state: InverterComponentState
     """State of the inverter."""
 
-    _errors: list[inverter.Error]
+    errors: list[InverterError]
     """List of errors from the component."""
 
     @classmethod
@@ -410,8 +414,10 @@ class InverterData(ComponentData):  # pylint: disable=too-many-instance-attribut
             active_power_inclusion_upper_bound=raw_power.system_inclusion_bounds.upper,
             active_power_exclusion_upper_bound=raw_power.system_exclusion_bounds.upper,
             frequency=raw.inverter.data.ac.frequency.value,
-            _component_state=raw.inverter.state.component_state,
-            _errors=list(raw.inverter.errors),
+            component_state=InverterComponentState.from_pb(
+                raw.inverter.state.component_state
+            ),
+            errors=[InverterError.from_pb(e) for e in raw.inverter.errors],
         )
 
         inverter_data._set_raw(raw=raw)

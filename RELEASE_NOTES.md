@@ -2,7 +2,7 @@
 
 ## Summary
 
-<!-- Here goes a general summary of what this release is about -->
+This release migrates to use `betterproto` and `grpclib` instead of `grpcio` and `protobuf` internally. It also stops *leaking* these internal libraries to downstream users. It should now be possible to use the client without having to use `grpclib` or `betterproto` directly.
 
 ## Upgrading
 
@@ -15,6 +15,8 @@
    You can also access the underlying `grpclib.GRPCError` using the `grpc_error` attribute for `GrpStatusError` exceptions, but it is discouraged because it makes downstream projects dependant on `grpclib` too
 
 - The client now uses protobuf/grpc bindings generated [betterproto](https://github.com/danielgtaylor/python-betterproto) ([frequenz-microgrid-betterproto](https://github.com/frequenz-floss/frequenz-microgrid-betterproto-python)) instead of [grpcio](https://pypi.org/project/grpcio/) ([frequenz-api-microgrid](https://github.com/frequenz-floss/frequenz-api-microgrid)). If you were using the bindings directly, you might need to do some minor adjustments to your code.
+
+- If an unknown EV charger component state is received, it will now be set to `EVChargerComponentState.UNKNOWN` instead of `EVChargerComponentState.UNSPECIFIED`.
 
 ## New Features
 
@@ -38,6 +40,18 @@
       if e.code() == grpc.StatusCode.DEADLINE_EXCEEDED:
          ...
    ```
+
+- We now expose component errors as part of the streamed component data:
+
+   * `BatteryData.errors`
+   * `InverterData.errors`
+
+- We now expose component states as part of the streamed component data:
+
+   * `BatteryData.component_state` and `BatteryData.relay_state`
+   * `InverterData.component_state`
+
+- Added the missing `EVChargerComponentState.UNKNOWN` state.
 
 ## Bug Fixes
 

@@ -25,7 +25,20 @@ from ._component_data import (
     InverterData,
     MeterData,
 )
-from ._component_states import EVChargerCableState, EVChargerComponentState
+from ._component_error import (
+    BatteryError,
+    BatteryErrorCode,
+    ErrorLevel,
+    InverterError,
+    InverterErrorCode,
+)
+from ._component_states import (
+    BatteryComponentState,
+    BatteryRelayState,
+    EVChargerCableState,
+    EVChargerComponentState,
+    InverterComponentState,
+)
 from ._connection import Connection
 from ._exception import (
     ClientError,
@@ -52,7 +65,11 @@ from ._metadata import Location, Metadata
 
 __all__ = [
     "ApiClient",
+    "BatteryComponentState",
     "BatteryData",
+    "BatteryError",
+    "BatteryErrorCode",
+    "BatteryRelayState",
     "ClientError",
     "Component",
     "ComponentCategory",
@@ -67,12 +84,16 @@ __all__ = [
     "EVChargerData",
     "EntityAlreadyExists",
     "EntityNotFound",
+    "ErrorLevel",
     "Fuse",
     "GridMetadata",
     "GrpcError",
     "InternalError",
     "InvalidArgument",
+    "InverterComponentState",
     "InverterData",
+    "InverterError",
+    "InverterErrorCode",
     "InverterType",
     "Location",
     "Metadata",
