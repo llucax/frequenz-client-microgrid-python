@@ -10,8 +10,11 @@ from typing import Any
 
 from frequenz.api.microgrid import microgrid_pb2_grpc
 from frequenz.client.base import channel, client, retry, streaming
+from google.protobuf.empty_pb2 import Empty
 
 from ._exception import ClientNotConnected
+from ._microgrid_info import MicrogridInfo
+from ._microgrid_info_proto import microgrid_info_from_proto
 
 DEFAULT_GRPC_CALL_TIMEOUT = 60.0
 """The default timeout for gRPC calls made by this client (in seconds)."""
@@ -76,3 +79,30 @@ class MicrogridApiClient(client.BaseApiClient[microgrid_pb2_grpc.MicrogridStub])
         # actually exists to the eyes of the interpreter, it only exists for the
         # type-checker, so it can only be used for type hints.
         return self._stub  # type: ignore
+
+    async def get_microgrid_info(  # noqa: DOC502 (raises ApiClientError indirectly)
+        self,
+    ) -> MicrogridInfo:
+        """Fetch the information about the local microgrid.
+
+        This consists of information that describes the overall microgrid, as opposed to
+        its electrical components or sensors, e.g., the microgrid ID, location.
+
+        Returns:
+            The information about the local microgrid.
+
+        Raises:
+            ApiClientError: If the are any errors communicating with the Microgrid API,
+                most likely a subclass of
+                [GrpcError][frequenz.client.microgrid.GrpcError].
+        """
+        microgrid = await client.call_stub_method(
+            self,
+            lambda: self.stub.GetMicrogridMetadata(
+                Empty(),
+                timeout=int(DEFAULT_GRPC_CALL_TIMEOUT),
+            ),
+            method_name="GetMicrogridMetadata",
+        )
+
+        return microgrid_info_from_proto(microgrid.microgrid)
