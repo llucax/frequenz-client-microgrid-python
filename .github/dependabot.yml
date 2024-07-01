@@ -25,36 +25,24 @@ updates:
         update-types:
           - "minor"
           - "patch"
-        patterns:
-          - "^(?!frequenz-client-base\\[grpclib\\]).*$"
-          - "^(?!frequenz-microgrid-betterproto).*$"
+        exclude-patterns:
+          - "frequenz-client-base*"
+          - "frequenz-microgrid-betterproto*"
       optional:
         dependency-type: "development"
         update-types:
           - "minor"
           - "patch"
-        patterns:
-          - "^(?!frequenz-client-base\\[grpclib\\]).*$"
-          - "^(?!frequenz-microgrid-betterproto).*$"
+        exclude-patterns:
+          - "frequenz-client-base*"
+          - "frequenz-microgrid-betterproto*"
       in-devel-patch:
         patterns:
-          - "^frequenz-client-base\\[grpclib\\].*$"
-          - "^frequenz-microgrid-betterproto.*$"
+          - "frequenz-client-base*"
+          - "frequenz-microgrid-betterproto*"
         dependency-type: "production"
         update-types:
           - "patch"
-      client-base-minor:
-        patterns:
-          - "^frequenz-client-base\\[grpclib\\].*$"
-        dependency-type: "production"
-        update-types:
-          - "minor"
-      microgrid-betterproto-minor:
-        patterns:
-          - "^frequenz-microgrid-betterproto.*$"
-        dependency-type: "production"
-        update-types:
-          - "minor"
 
   - package-ecosystem: "github-actions"
     directory: "/"
