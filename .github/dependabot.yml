@@ -57,3 +57,6 @@ updates:
         update-types:
           - "minor"
           - "patch"
+      artifacts:
+        patterns:
+          - "actions/*-artifact"
