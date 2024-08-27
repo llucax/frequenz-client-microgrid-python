@@ -5,19 +5,34 @@
 
 import asyncio
 import logging
-from collections.abc import Callable, Iterable, Set
-from typing import Any, TypeVar
+from collections.abc import AsyncIterator, Awaitable, Callable, Iterable, Set
+from typing import Any, TypeVar, cast
 
-import grpclib
-import grpclib.client
-from betterproto.lib.google import protobuf as pb_google
+import grpc.aio
+
+# pylint: disable=no-name-in-module
+from frequenz.api.common.components_pb2 import ComponentCategory as PbComponentCategory
+from frequenz.api.common.metrics_pb2 import Bounds as PbBounds
+from frequenz.api.microgrid.microgrid_pb2 import ComponentData as PbComponentData
+from frequenz.api.microgrid.microgrid_pb2 import ComponentFilter as PbComponentFilter
+from frequenz.api.microgrid.microgrid_pb2 import ComponentIdParam as PbComponentIdParam
+from frequenz.api.microgrid.microgrid_pb2 import ComponentList as PbComponentList
+from frequenz.api.microgrid.microgrid_pb2 import ConnectionFilter as PbConnectionFilter
+from frequenz.api.microgrid.microgrid_pb2 import ConnectionList as PbConnectionList
+from frequenz.api.microgrid.microgrid_pb2 import (
+    MicrogridMetadata as PbMicrogridMetadata,
+)
+from frequenz.api.microgrid.microgrid_pb2 import SetBoundsParam as PbSetBoundsParam
+from frequenz.api.microgrid.microgrid_pb2 import (
+    SetPowerActiveParam as PbSetPowerActiveParam,
+)
+from frequenz.api.microgrid.microgrid_pb2_grpc import MicrogridStub
+
+# pylint: enable=no-name-in-module
 from frequenz.channels import Receiver
 from frequenz.client.base import channel, retry, streaming
-from frequenz.microgrid.betterproto.frequenz.api import microgrid as pb_microgrid
-from frequenz.microgrid.betterproto.frequenz.api.common import (
-    components as pb_components,
-)
-from frequenz.microgrid.betterproto.frequenz.api.common import metrics as pb_metrics
+from google.protobuf.empty_pb2 import Empty  # pylint: disable=no-name-in-module
+from google.protobuf.timestamp_pb2 import Timestamp  # pylint: disable=no-name-in-module
 
 from ._component import (
     Component,
@@ -72,7 +87,7 @@ class ApiClient:
         self._server_url = server_url
         """The location of the microgrid API server as a URL."""
 
-        self.api = pb_microgrid.MicrogridStub(channel.parse_grpc_uri(server_url))
+        self.api = MicrogridStub(channel.parse_grpc_uri(server_url))
         """The gRPC stub for the microgrid API."""
 
         self._broadcasters: dict[int, streaming.GrpcStreamBroadcaster[Any, Any]] = {}
@@ -95,20 +110,24 @@ class ApiClient:
                 [GrpcError][frequenz.client.microgrid.GrpcError].
         """
         try:
-            component_list = await self.api.list_components(
-                pb_microgrid.ComponentFilter(),
-                timeout=int(DEFAULT_GRPC_CALL_TIMEOUT),
+            # grpc.aio is missing types and mypy thinks this is not awaitable,
+            # but it is
+            component_list = await cast(
+                Awaitable[PbComponentList],
+                self.api.ListComponents(
+                    PbComponentFilter(),
+                    timeout=int(DEFAULT_GRPC_CALL_TIMEOUT),
+                ),
             )
-        except grpclib.GRPCError as grpc_error:
+        except grpc.aio.AioRpcError as grpc_error:
             raise ClientError.from_grpc_error(
                 server_url=self._server_url,
-                operation="list_components",
+                operation="ListComponents",
                 grpc_error=grpc_error,
             ) from grpc_error
 
         components_only = filter(
-            lambda c: c.category
-            is not pb_components.ComponentCategory.COMPONENT_CATEGORY_SENSOR,
+            lambda c: c.category is not PbComponentCategory.COMPONENT_CATEGORY_SENSOR,
             component_list.components,
         )
         result: Iterable[Component] = map(
@@ -132,13 +151,16 @@ class ApiClient:
         Returns:
             the microgrid metadata.
         """
-        microgrid_metadata: pb_microgrid.MicrogridMetadata | None = None
+        microgrid_metadata: PbMicrogridMetadata | None = None
         try:
-            microgrid_metadata = await self.api.get_microgrid_metadata(
-                pb_google.Empty(),
-                timeout=int(DEFAULT_GRPC_CALL_TIMEOUT),
+            microgrid_metadata = await cast(
+                Awaitable[PbMicrogridMetadata],
+                self.api.GetMicrogridMetadata(
+                    Empty(),
+                    timeout=int(DEFAULT_GRPC_CALL_TIMEOUT),
+                ),
             )
-        except grpclib.GRPCError:
+        except grpc.aio.AioRpcError:
             _logger.exception("The microgrid metadata is not available.")
 
         if not microgrid_metadata:
@@ -174,21 +196,24 @@ class ApiClient:
                 most likely a subclass of
                 [GrpcError][frequenz.client.microgrid.GrpcError].
         """
-        connection_filter = pb_microgrid.ConnectionFilter(
-            starts=list(starts), ends=list(ends)
-        )
+        connection_filter = PbConnectionFilter(starts=starts, ends=ends)
         try:
             valid_components, all_connections = await asyncio.gather(
                 self.components(),
-                self.api.list_connections(
-                    connection_filter,
-                    timeout=int(DEFAULT_GRPC_CALL_TIMEOUT),
+                # grpc.aio is missing types and mypy thinks this is not
+                # awaitable, but it is
+                cast(
+                    Awaitable[PbConnectionList],
+                    self.api.ListConnections(
+                        connection_filter,
+                        timeout=int(DEFAULT_GRPC_CALL_TIMEOUT),
+                    ),
                 ),
             )
-        except grpclib.GRPCError as grpc_error:
+        except grpc.aio.AioRpcError as grpc_error:
             raise ClientError.from_grpc_error(
                 server_url=self._server_url,
-                operation="list_connections",
+                operation="ListConnections",
                 grpc_error=grpc_error,
             ) from grpc_error
         # Filter out the components filtered in `components` method.
@@ -212,7 +237,7 @@ class ApiClient:
         *,
         component_id: int,
         expected_category: ComponentCategory,
-        transform: Callable[[pb_microgrid.ComponentData], _ComponentDataT],
+        transform: Callable[[PbComponentData], _ComponentDataT],
         maxsize: int,
     ) -> Receiver[_ComponentDataT]:
         """Return a new broadcaster receiver for a given `component_id`.
@@ -239,8 +264,13 @@ class ApiClient:
         if broadcaster is None:
             broadcaster = streaming.GrpcStreamBroadcaster(
                 f"raw-component-data-{component_id}",
-                lambda: self.api.stream_component_data(
-                    pb_microgrid.ComponentIdParam(id=component_id)
+                # We need to cast here because grpc says StreamComponentData is
+                # a grpc.CallIterator[PbComponentData] which is not an AsyncIterator,
+                # but it is a grpc.aio.UnaryStreamCall[..., PbComponentData], which it
+                # is.
+                lambda: cast(
+                    AsyncIterator[PbComponentData],
+                    self.api.StreamComponentData(PbComponentIdParam(id=component_id)),
                 ),
                 transform,
                 retry_strategy=self._retry_strategy,
@@ -394,16 +424,17 @@ class ApiClient:
                 [GrpcError][frequenz.client.microgrid.GrpcError].
         """
         try:
-            await self.api.set_power_active(
-                pb_microgrid.SetPowerActiveParam(
-                    component_id=component_id, power=power_w
+            await cast(
+                Awaitable[Empty],
+                self.api.SetPowerActive(
+                    PbSetPowerActiveParam(component_id=component_id, power=power_w),
+                    timeout=int(DEFAULT_GRPC_CALL_TIMEOUT),
                 ),
-                timeout=int(DEFAULT_GRPC_CALL_TIMEOUT),
             )
-        except grpclib.GRPCError as grpc_error:
+        except grpc.aio.AioRpcError as grpc_error:
             raise ClientError.from_grpc_error(
                 server_url=self._server_url,
-                operation="set_power_active",
+                operation="SetPowerActive",
                 grpc_error=grpc_error,
             ) from grpc_error
 
@@ -413,7 +444,7 @@ class ApiClient:
         lower: float,
         upper: float,
     ) -> None:
-        """Send `SetBoundsParam`s received from a channel to the Microgrid service.
+        """Send `PbSetBoundsParam`s received from a channel to the Microgrid service.
 
         Args:
             component_id: ID of the component to set bounds for.
@@ -432,21 +463,22 @@ class ApiClient:
         if lower > 0:
             raise ValueError(f"Lower bound {lower} must be less than or equal to 0.")
 
-        target_metric = (
-            pb_microgrid.SetBoundsParamTargetMetric.TARGET_METRIC_POWER_ACTIVE
-        )
+        target_metric = PbSetBoundsParam.TargetMetric.TARGET_METRIC_POWER_ACTIVE
         try:
-            await self.api.add_inclusion_bounds(
-                pb_microgrid.SetBoundsParam(
-                    component_id=component_id,
-                    target_metric=target_metric,
-                    bounds=pb_metrics.Bounds(lower=lower, upper=upper),
+            await cast(
+                Awaitable[Timestamp],
+                self.api.AddInclusionBounds(
+                    PbSetBoundsParam(
+                        component_id=component_id,
+                        target_metric=target_metric,
+                        bounds=PbBounds(lower=lower, upper=upper),
+                    ),
+                    timeout=int(DEFAULT_GRPC_CALL_TIMEOUT),
                 ),
-                timeout=int(DEFAULT_GRPC_CALL_TIMEOUT),
             )
-        except grpclib.GRPCError as grpc_error:
+        except grpc.aio.AioRpcError as grpc_error:
             raise ClientError.from_grpc_error(
                 server_url=self._server_url,
-                operation="add_inclusion_bounds",
+                operation="AddInclusionBounds",
                 grpc_error=grpc_error,
             ) from grpc_error

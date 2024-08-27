@@ -9,13 +9,28 @@ from contextlib import AsyncExitStack
 from typing import Any
 from unittest import mock
 
-import grpclib
-import grpclib.client
+import grpc.aio
 import pytest
+
+# pylint: disable=no-name-in-module
+from frequenz.api.common.components_pb2 import ComponentCategory as PbComponentCategory
+from frequenz.api.common.components_pb2 import InverterType as PbInverterType
+from frequenz.api.common.metrics_pb2 import Bounds as PbBounds
+from frequenz.api.microgrid.grid_pb2 import Metadata as PbGridMetadata
+from frequenz.api.microgrid.inverter_pb2 import Metadata as PbInverterMetadata
+from frequenz.api.microgrid.microgrid_pb2 import Component as PbComponent
+from frequenz.api.microgrid.microgrid_pb2 import ComponentData as PbComponentData
+from frequenz.api.microgrid.microgrid_pb2 import ComponentList as PbComponentList
+from frequenz.api.microgrid.microgrid_pb2 import Connection as PbConnection
+from frequenz.api.microgrid.microgrid_pb2 import ConnectionFilter as PbConnectionFilter
+from frequenz.api.microgrid.microgrid_pb2 import ConnectionList as PbConnectionList
+from frequenz.api.microgrid.microgrid_pb2 import SetBoundsParam as PbSetBoundsParam
+from frequenz.api.microgrid.microgrid_pb2 import (
+    SetPowerActiveParam as PbSetPowerActiveParam,
+)
+
+# pylint: enable=no-name-in-module
 from frequenz.client.base import retry
-from frequenz.microgrid.betterproto.frequenz.api import microgrid
-from frequenz.microgrid.betterproto.frequenz.api.common import components, metrics
-from frequenz.microgrid.betterproto.frequenz.api.microgrid import grid, inverter
 
 from frequenz.client.microgrid import (
     ApiClient,
@@ -36,7 +51,16 @@ from frequenz.client.microgrid._connection import Connection
 
 class _TestClient(ApiClient):
     def __init__(self, *, retry_strategy: retry.Strategy | None = None) -> None:
-        mock_stub = mock.MagicMock(name="stub", spec=microgrid.MicrogridStub)
+        # Here we sadly can't use spec=MicrogridStub because the generated stub typing
+        # is a mess, and for some reason inspection of gRPC methods doesn't work.
+        # This is also why we need to explicitly create the AsyncMock objects for every
+        # call.
+        mock_stub = mock.MagicMock(name="stub")
+        mock_stub.ListComponents = mock.AsyncMock("ListComponents")
+        mock_stub.ListConnections = mock.AsyncMock("ListConnections")
+        mock_stub.SetPowerActive = mock.AsyncMock("SetPowerActive")
+        mock_stub.AddInclusionBounds = mock.AsyncMock("AddInclusionBounds")
+        mock_stub.StreamComponentData = mock.Mock("StreamComponentData")
         super().__init__("grpc://mock_host:1234", retry_strategy=retry_strategy)
         self.mock_stub = mock_stub
         self.api = mock_stub
@@ -45,21 +69,17 @@ class _TestClient(ApiClient):
 async def test_components() -> None:
     """Test the components() method."""
     client = _TestClient()
-    server_response = microgrid.ComponentList()
-    client.mock_stub.list_components.return_value = server_response
+    server_response = PbComponentList()
+    client.mock_stub.ListComponents.return_value = server_response
     assert set(await client.components()) == set()
 
     server_response.components.append(
-        microgrid.Component(
-            id=0, category=components.ComponentCategory.COMPONENT_CATEGORY_METER
-        )
+        PbComponent(id=0, category=PbComponentCategory.COMPONENT_CATEGORY_METER)
     )
     assert set(await client.components()) == {Component(0, ComponentCategory.METER)}
 
     server_response.components.append(
-        microgrid.Component(
-            id=0, category=components.ComponentCategory.COMPONENT_CATEGORY_BATTERY
-        )
+        PbComponent(id=0, category=PbComponentCategory.COMPONENT_CATEGORY_BATTERY)
     )
     assert set(await client.components()) == {
         Component(0, ComponentCategory.METER),
@@ -67,9 +87,7 @@ async def test_components() -> None:
     }
 
     server_response.components.append(
-        microgrid.Component(
-            id=0, category=components.ComponentCategory.COMPONENT_CATEGORY_METER
-        )
+        PbComponent(id=0, category=PbComponentCategory.COMPONENT_CATEGORY_METER)
     )
     assert set(await client.components()) == {
         Component(0, ComponentCategory.METER),
@@ -79,9 +97,7 @@ async def test_components() -> None:
 
     # sensors are not counted as components by the API client
     server_response.components.append(
-        microgrid.Component(
-            id=1, category=components.ComponentCategory.COMPONENT_CATEGORY_SENSOR
-        )
+        PbComponent(id=1, category=PbComponentCategory.COMPONENT_CATEGORY_SENSOR)
     )
     assert set(await client.components()) == {
         Component(0, ComponentCategory.METER),
@@ -89,57 +105,53 @@ async def test_components() -> None:
         Component(0, ComponentCategory.METER),
     }
 
-    server_response.components[:] = [
-        microgrid.Component(
-            id=9, category=components.ComponentCategory.COMPONENT_CATEGORY_METER
-        ),
-        microgrid.Component(
-            id=99, category=components.ComponentCategory.COMPONENT_CATEGORY_INVERTER
-        ),
-        microgrid.Component(
-            id=666, category=components.ComponentCategory.COMPONENT_CATEGORY_SENSOR
-        ),
-        microgrid.Component(
-            id=999, category=components.ComponentCategory.COMPONENT_CATEGORY_BATTERY
-        ),
-    ]
+    _replace_components(
+        server_response,
+        [
+            PbComponent(id=9, category=PbComponentCategory.COMPONENT_CATEGORY_METER),
+            PbComponent(
+                id=99, category=PbComponentCategory.COMPONENT_CATEGORY_INVERTER
+            ),
+            PbComponent(id=666, category=PbComponentCategory.COMPONENT_CATEGORY_SENSOR),
+            PbComponent(
+                id=999, category=PbComponentCategory.COMPONENT_CATEGORY_BATTERY
+            ),
+        ],
+    )
     assert set(await client.components()) == {
         Component(9, ComponentCategory.METER),
         Component(99, ComponentCategory.INVERTER, InverterType.NONE),
         Component(999, ComponentCategory.BATTERY),
     }
 
-    server_response.components[:] = [
-        microgrid.Component(
-            id=99, category=components.ComponentCategory.COMPONENT_CATEGORY_SENSOR
-        ),
-        microgrid.Component(
-            id=100,
-            category=components.ComponentCategory.COMPONENT_CATEGORY_UNSPECIFIED,
-        ),
-        microgrid.Component(
-            id=104, category=components.ComponentCategory.COMPONENT_CATEGORY_METER
-        ),
-        microgrid.Component(
-            id=105,
-            category=components.ComponentCategory.COMPONENT_CATEGORY_INVERTER,
-        ),
-        microgrid.Component(
-            id=106, category=components.ComponentCategory.COMPONENT_CATEGORY_BATTERY
-        ),
-        microgrid.Component(
-            id=107,
-            category=components.ComponentCategory.COMPONENT_CATEGORY_EV_CHARGER,
-        ),
-        microgrid.Component(
-            id=999, category=components.ComponentCategory.COMPONENT_CATEGORY_SENSOR
-        ),
-        microgrid.Component(
-            id=101,
-            category=components.ComponentCategory.COMPONENT_CATEGORY_GRID,
-            grid=grid.Metadata(rated_fuse_current=int(123.0)),
-        ),
-    ]
+    _replace_components(
+        server_response,
+        [
+            PbComponent(id=99, category=PbComponentCategory.COMPONENT_CATEGORY_SENSOR),
+            PbComponent(
+                id=100,
+                category=PbComponentCategory.COMPONENT_CATEGORY_UNSPECIFIED,
+            ),
+            PbComponent(id=104, category=PbComponentCategory.COMPONENT_CATEGORY_METER),
+            PbComponent(
+                id=105,
+                category=PbComponentCategory.COMPONENT_CATEGORY_INVERTER,
+            ),
+            PbComponent(
+                id=106, category=PbComponentCategory.COMPONENT_CATEGORY_BATTERY
+            ),
+            PbComponent(
+                id=107,
+                category=PbComponentCategory.COMPONENT_CATEGORY_EV_CHARGER,
+            ),
+            PbComponent(id=999, category=PbComponentCategory.COMPONENT_CATEGORY_SENSOR),
+            PbComponent(
+                id=101,
+                category=PbComponentCategory.COMPONENT_CATEGORY_GRID,
+                grid=PbGridMetadata(rated_fuse_current=int(123.0)),
+            ),
+        ],
+    )
 
     grid_fuse = Fuse(123.0)
 
@@ -157,24 +169,21 @@ async def test_components() -> None:
         Component(107, ComponentCategory.EV_CHARGER),
     }
 
-    server_response.components[:] = [
-        microgrid.Component(
-            id=9, category=components.ComponentCategory.COMPONENT_CATEGORY_METER
-        ),
-        microgrid.Component(
-            id=666, category=components.ComponentCategory.COMPONENT_CATEGORY_SENSOR
-        ),
-        microgrid.Component(
-            id=999, category=components.ComponentCategory.COMPONENT_CATEGORY_BATTERY
-        ),
-        microgrid.Component(
-            id=99,
-            category=components.ComponentCategory.COMPONENT_CATEGORY_INVERTER,
-            inverter=inverter.Metadata(
-                type=components.InverterType.INVERTER_TYPE_BATTERY
+    _replace_components(
+        server_response,
+        [
+            PbComponent(id=9, category=PbComponentCategory.COMPONENT_CATEGORY_METER),
+            PbComponent(id=666, category=PbComponentCategory.COMPONENT_CATEGORY_SENSOR),
+            PbComponent(
+                id=999, category=PbComponentCategory.COMPONENT_CATEGORY_BATTERY
             ),
-        ),
-    ]
+            PbComponent(
+                id=99,
+                category=PbComponentCategory.COMPONENT_CATEGORY_INVERTER,
+                inverter=PbInverterMetadata(type=PbInverterType.INVERTER_TYPE_BATTERY),
+            ),
+        ],
+    )
 
     assert set(await client.components()) == {
         Component(9, ComponentCategory.METER),
@@ -186,14 +195,18 @@ async def test_components() -> None:
 async def test_components_grpc_error() -> None:
     """Test the components() method when the gRPC call fails."""
     client = _TestClient()
-    client.mock_stub.list_components.side_effect = grpclib.GRPCError(
-        mock.MagicMock(name="mock_status"), "fake grpc error", "fake details"
+    client.mock_stub.ListComponents.side_effect = grpc.aio.AioRpcError(
+        mock.MagicMock(name="mock_status"),
+        mock.MagicMock(name="mock_initial_metadata"),
+        mock.MagicMock(name="mock_trailing_metadata"),
+        "fake grpc details",
+        "fake grpc debug_error_string",
     )
     with pytest.raises(
         ClientError,
-        match=r"Failed calling 'list_components' on 'grpc://mock_host:1234': .* "
-        r"<status=<MagicMock name='mock_status\.name' id='.*'>>: fake grpc error "
-        r"\(fake details\)",
+        match=r"Failed calling 'ListComponents' on 'grpc://mock_host:1234': .* "
+        r"<status=<MagicMock name='mock_status\.name' id='.*'>>: fake grpc details "
+        r"\(fake grpc debug_error_string\)",
     ):
         await client.components()
 
@@ -203,56 +216,55 @@ async def test_connections() -> None:
     client = _TestClient()
 
     def assert_filter(*, starts: set[int], ends: set[int]) -> None:
-        client.mock_stub.list_connections.assert_called_once()
-        filter_ = client.mock_stub.list_connections.call_args[0][0]
-        assert isinstance(filter_, microgrid.ConnectionFilter)
+        client.mock_stub.ListConnections.assert_called_once()
+        filter_ = client.mock_stub.ListConnections.call_args[0][0]
+        assert isinstance(filter_, PbConnectionFilter)
         assert set(filter_.starts) == starts
         assert set(filter_.ends) == ends
 
-    components_response = microgrid.ComponentList()
-    connections_response = microgrid.ConnectionList()
-    client.mock_stub.list_components.return_value = components_response
-    client.mock_stub.list_connections.return_value = connections_response
+    components_response = PbComponentList()
+    connections_response = PbConnectionList()
+    client.mock_stub.ListComponents.return_value = components_response
+    client.mock_stub.ListConnections.return_value = connections_response
     assert set(await client.connections()) == set()
     assert_filter(starts=set(), ends=set())
 
-    connections_response.connections.append(microgrid.Connection(start=0, end=0))
+    connections_response.connections.append(PbConnection(start=0, end=0))
     assert set(await client.connections()) == {Connection(0, 0)}
 
     components_response.components.extend(
         [
-            microgrid.Component(
-                id=7, category=components.ComponentCategory.COMPONENT_CATEGORY_BATTERY
-            ),
-            microgrid.Component(
-                id=9, category=components.ComponentCategory.COMPONENT_CATEGORY_INVERTER
-            ),
+            PbComponent(id=7, category=PbComponentCategory.COMPONENT_CATEGORY_BATTERY),
+            PbComponent(id=9, category=PbComponentCategory.COMPONENT_CATEGORY_INVERTER),
         ]
     )
-    connections_response.connections.append(microgrid.Connection(start=7, end=9))
+    connections_response.connections.append(PbConnection(start=7, end=9))
     assert set(await client.connections()) == {
         Connection(0, 0),
         Connection(7, 9),
     }
 
-    connections_response.connections.append(microgrid.Connection(start=0, end=0))
+    connections_response.connections.append(PbConnection(start=0, end=0))
     assert set(await client.connections()) == {
         Connection(0, 0),
         Connection(7, 9),
         Connection(0, 0),
     }
 
-    connections_response.connections[:] = [
-        microgrid.Connection(start=999, end=9),
-        microgrid.Connection(start=99, end=19),
-        microgrid.Connection(start=909, end=101),
-        microgrid.Connection(start=99, end=91),
-    ]
+    _replace_connections(
+        connections_response,
+        [
+            PbConnection(start=999, end=9),
+            PbConnection(start=99, end=19),
+            PbConnection(start=909, end=101),
+            PbConnection(start=99, end=91),
+        ],
+    )
     for component_id in [999, 99, 19, 909, 101, 91]:
         components_response.components.append(
-            microgrid.Component(
+            PbComponent(
                 id=component_id,
-                category=components.ComponentCategory.COMPONENT_CATEGORY_BATTERY,
+                category=PbComponentCategory.COMPONENT_CATEGORY_BATTERY,
             )
         )
     assert set(await client.connections()) == {
@@ -264,23 +276,26 @@ async def test_connections() -> None:
 
     for component_id in [1, 2, 3, 4, 5, 6, 7, 8]:
         components_response.components.append(
-            microgrid.Component(
+            PbComponent(
                 id=component_id,
-                category=components.ComponentCategory.COMPONENT_CATEGORY_BATTERY,
+                category=PbComponentCategory.COMPONENT_CATEGORY_BATTERY,
             )
         )
-    connections_response.connections[:] = [
-        microgrid.Connection(start=1, end=2),
-        microgrid.Connection(start=2, end=3),
-        microgrid.Connection(start=2, end=4),
-        microgrid.Connection(start=2, end=5),
-        microgrid.Connection(start=4, end=3),
-        microgrid.Connection(start=4, end=5),
-        microgrid.Connection(start=4, end=6),
-        microgrid.Connection(start=5, end=4),
-        microgrid.Connection(start=5, end=7),
-        microgrid.Connection(start=5, end=8),
-    ]
+    _replace_connections(
+        connections_response,
+        [
+            PbConnection(start=1, end=2),
+            PbConnection(start=2, end=3),
+            PbConnection(start=2, end=4),
+            PbConnection(start=2, end=5),
+            PbConnection(start=4, end=3),
+            PbConnection(start=4, end=5),
+            PbConnection(start=4, end=6),
+            PbConnection(start=5, end=4),
+            PbConnection(start=5, end=7),
+            PbConnection(start=5, end=8),
+        ],
+    )
     assert set(await client.connections()) == {
         Connection(1, 2),
         Connection(2, 3),
@@ -327,57 +342,55 @@ async def test_connections() -> None:
 async def test_connections_grpc_error() -> None:
     """Test the components() method when the gRPC call fails."""
     client = _TestClient()
-    client.mock_stub.list_connections.side_effect = grpclib.GRPCError(
-        mock.MagicMock(name="mock_status"), "fake grpc error", "fake details"
+    client.mock_stub.ListConnections.side_effect = grpc.aio.AioRpcError(
+        mock.MagicMock(name="mock_status"),
+        mock.MagicMock(name="mock_initial_metadata"),
+        mock.MagicMock(name="mock_trailing_metadata"),
+        "fake grpc details",
+        "fake grpc debug_error_string",
     )
     with pytest.raises(
         ClientError,
-        match=r"Failed calling 'list_connections' on 'grpc://mock_host:1234': .* "
-        r"<status=<MagicMock name='mock_status\.name' id='.*'>>: fake grpc error "
-        r"\(fake details\)",
+        match=r"Failed calling 'ListConnections' on 'grpc://mock_host:1234': .* "
+        r"<status=<MagicMock name='mock_status\.name' id='.*'>>: fake grpc details "
+        r"\(fake grpc debug_error_string\)",
     ):
         await client.connections()
 
 
 @pytest.fixture
-def meter83() -> microgrid.Component:
+def meter83() -> PbComponent:
     """Return a test meter component."""
-    return microgrid.Component(
-        id=83, category=components.ComponentCategory.COMPONENT_CATEGORY_METER
-    )
+    return PbComponent(id=83, category=PbComponentCategory.COMPONENT_CATEGORY_METER)
 
 
 @pytest.fixture
-def battery38() -> microgrid.Component:
+def battery38() -> PbComponent:
     """Return a test battery component."""
-    return microgrid.Component(
-        id=38, category=components.ComponentCategory.COMPONENT_CATEGORY_BATTERY
-    )
+    return PbComponent(id=38, category=PbComponentCategory.COMPONENT_CATEGORY_BATTERY)
 
 
 @pytest.fixture
-def inverter99() -> microgrid.Component:
+def inverter99() -> PbComponent:
     """Return a test inverter component."""
-    return microgrid.Component(
-        id=99, category=components.ComponentCategory.COMPONENT_CATEGORY_INVERTER
-    )
+    return PbComponent(id=99, category=PbComponentCategory.COMPONENT_CATEGORY_INVERTER)
 
 
 @pytest.fixture
-def ev_charger101() -> microgrid.Component:
+def ev_charger101() -> PbComponent:
     """Return a test EV charger component."""
-    return microgrid.Component(
-        id=101, category=components.ComponentCategory.COMPONENT_CATEGORY_EV_CHARGER
+    return PbComponent(
+        id=101, category=PbComponentCategory.COMPONENT_CATEGORY_EV_CHARGER
     )
 
 
 @pytest.fixture
 def component_list(
-    meter83: microgrid.Component,
-    battery38: microgrid.Component,
-    inverter99: microgrid.Component,
-    ev_charger101: microgrid.Component,
-) -> list[microgrid.Component]:
+    meter83: PbComponent,
+    battery38: PbComponent,
+    inverter99: PbComponent,
+    ev_charger101: PbComponent,
+) -> list[PbComponent]:
     """Return a list of test components."""
     return [meter83, battery38, inverter99, ev_charger101]
 
@@ -386,7 +399,7 @@ def component_list(
 async def test_data_component_not_found(method: str) -> None:
     """Test the meter_data() method."""
     client = _TestClient()
-    client.mock_stub.list_components.return_value = microgrid.ComponentList()
+    client.mock_stub.ListComponents.return_value = PbComponentList()
 
     # It should raise a ValueError for a missing component_id
     with pytest.raises(ValueError, match="Unable to find component with id 20"):
@@ -403,11 +416,11 @@ async def test_data_component_not_found(method: str) -> None:
     ],
 )
 async def test_data_bad_category(
-    method: str, component_id: int, component_list: list[microgrid.Component]
+    method: str, component_id: int, component_list: list[PbComponent]
 ) -> None:
     """Test the meter_data() method."""
     client = _TestClient()
-    client.mock_stub.list_components.return_value = microgrid.ComponentList(
+    client.mock_stub.ListComponents.return_value = PbComponentList(
         components=component_list
     )
 
@@ -431,20 +444,20 @@ async def test_component_data(
     method: str,
     component_id: int,
     component_class: type[ComponentData],
-    component_list: list[microgrid.Component],
+    component_list: list[PbComponent],
 ) -> None:
     """Test the meter_data() method."""
     client = _TestClient()
-    client.mock_stub.list_components.return_value = microgrid.ComponentList(
+    client.mock_stub.ListComponents.return_value = PbComponentList(
         components=component_list
     )
 
     async def stream_data(
         *args: Any, **kwargs: Any  # pylint: disable=unused-argument
-    ) -> AsyncIterator[microgrid.ComponentData]:
-        yield microgrid.ComponentData(id=component_id)
+    ) -> AsyncIterator[PbComponentData]:
+        yield PbComponentData(id=component_id)
 
-    client.mock_stub.stream_component_data.side_effect = stream_data
+    client.mock_stub.StreamComponentData.side_effect = stream_data
     receiver = await getattr(client, method)(component_id)
     async with AsyncExitStack() as stack:
         stack.push_async_callback(
@@ -468,7 +481,7 @@ async def test_component_data_grpc_error(
     method: str,
     component_id: int,
     component_class: type[ComponentData],
-    component_list: list[microgrid.Component],
+    component_list: list[PbComponent],
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     """Test the components() method when the gRPC call fails."""
@@ -476,7 +489,7 @@ async def test_component_data_grpc_error(
     client = _TestClient(
         retry_strategy=retry.LinearBackoff(interval=0.0, jitter=0.0, limit=6)
     )
-    client.mock_stub.list_components.return_value = microgrid.ComponentList(
+    client.mock_stub.ListComponents.return_value = PbComponentList(
         components=component_list
     )
 
@@ -484,16 +497,20 @@ async def test_component_data_grpc_error(
 
     async def stream_data(
         *args: Any, **kwargs: Any  # pylint: disable=unused-argument
-    ) -> AsyncIterator[microgrid.ComponentData]:
+    ) -> AsyncIterator[PbComponentData]:
         nonlocal num_calls
         num_calls += 1
         if num_calls % 2:
-            raise grpclib.GRPCError(
-                mock.MagicMock(name="mock status"), f"fake grpc error {num_calls}"
+            raise grpc.aio.AioRpcError(
+                mock.MagicMock(name="mock_status"),
+                mock.MagicMock(name="mock_initial_metadata"),
+                mock.MagicMock(name="mock_trailing_metadata"),
+                f"fake grpc details num_calls={num_calls}",
+                "fake grpc debug_error_string",
             )
-        yield microgrid.ComponentData(id=component_id)
+        yield PbComponentData(id=component_id)
 
-    client.mock_stub.stream_component_data.side_effect = stream_data
+    client.mock_stub.StreamComponentData.side_effect = stream_data
     receiver = await getattr(client, method)(component_id)
     async with AsyncExitStack() as stack:
         stack.push_async_callback(
@@ -524,34 +541,36 @@ async def test_component_data_grpc_error(
         if n % 2:
             assert "Stream exhausted" in log_tuple[2]
         else:
-            assert f"fake grpc error {n+1}" in log_tuple[2]
+            assert f"fake grpc details num_calls={n+1}" in log_tuple[2]
 
 
 @pytest.mark.parametrize("power_w", [0, 0.0, 12, -75, 0.1, -0.0001, 134.0])
-async def test_set_power_ok(power_w: float, meter83: microgrid.Component) -> None:
+async def test_set_power_ok(power_w: float, meter83: PbComponent) -> None:
     """Test if charge is able to charge component."""
     client = _TestClient()
-    client.mock_stub.list_components.return_value = microgrid.ComponentList(
-        components=[meter83]
-    )
+    client.mock_stub.ListComponents.return_value = PbComponentList(components=[meter83])
 
     await client.set_power(component_id=83, power_w=power_w)
-    client.mock_stub.set_power_active.assert_called_once()
-    call_args = client.mock_stub.set_power_active.call_args[0]
-    assert call_args[0] == microgrid.SetPowerActiveParam(component_id=83, power=power_w)
+    client.mock_stub.SetPowerActive.assert_called_once()
+    call_args = client.mock_stub.SetPowerActive.call_args[0]
+    assert call_args[0] == PbSetPowerActiveParam(component_id=83, power=power_w)
 
 
 async def test_set_power_grpc_error() -> None:
     """Test set_power() raises ClientError when the gRPC call fails."""
     client = _TestClient()
-    client.mock_stub.set_power_active.side_effect = grpclib.GRPCError(
-        mock.MagicMock(name="mock_status"), "fake grpc error", "fake details"
+    client.mock_stub.SetPowerActive.side_effect = grpc.aio.AioRpcError(
+        mock.MagicMock(name="mock_status"),
+        mock.MagicMock(name="mock_initial_metadata"),
+        mock.MagicMock(name="mock_trailing_metadata"),
+        "fake grpc details",
+        "fake grpc debug_error_string",
     )
     with pytest.raises(
         ClientError,
-        match=r"Failed calling 'set_power_active' on 'grpc://mock_host:1234': .* "
-        r"<status=<MagicMock name='mock_status\.name' id='.*'>>: fake grpc error "
-        r"\(fake details\)",
+        match=r"Failed calling 'SetPowerActive' on 'grpc://mock_host:1234': .* "
+        r"<status=<MagicMock name='mock_status\.name' id='.*'>>: fake grpc details "
+        r"\(fake grpc debug_error_string\)",
     ):
         await client.set_power(component_id=83, power_w=100.0)
 
@@ -559,28 +578,26 @@ async def test_set_power_grpc_error() -> None:
 @pytest.mark.parametrize(
     "bounds",
     [
-        metrics.Bounds(lower=0.0, upper=0.0),
-        metrics.Bounds(lower=0.0, upper=2.0),
-        metrics.Bounds(lower=-10.0, upper=0.0),
-        metrics.Bounds(lower=-10.0, upper=2.0),
+        PbBounds(lower=0.0, upper=0.0),
+        PbBounds(lower=0.0, upper=2.0),
+        PbBounds(lower=-10.0, upper=0.0),
+        PbBounds(lower=-10.0, upper=2.0),
     ],
     ids=str,
 )
-async def test_set_bounds_ok(
-    bounds: metrics.Bounds, inverter99: microgrid.Component
-) -> None:
+async def test_set_bounds_ok(bounds: PbBounds, inverter99: PbComponent) -> None:
     """Test if charge is able to charge component."""
     client = _TestClient()
-    client.mock_stub.list_components.return_value = microgrid.ComponentList(
+    client.mock_stub.ListComponents.return_value = PbComponentList(
         components=[inverter99]
     )
 
     await client.set_bounds(99, bounds.lower, bounds.upper)
-    client.mock_stub.add_inclusion_bounds.assert_called_once()
-    call_args = client.mock_stub.add_inclusion_bounds.call_args[0]
-    assert call_args[0] == microgrid.SetBoundsParam(
+    client.mock_stub.AddInclusionBounds.assert_called_once()
+    call_args = client.mock_stub.AddInclusionBounds.call_args[0]
+    assert call_args[0] == PbSetBoundsParam(
         component_id=99,
-        target_metric=microgrid.SetBoundsParamTargetMetric.TARGET_METRIC_POWER_ACTIVE,
+        target_metric=PbSetBoundsParam.TargetMetric.TARGET_METRIC_POWER_ACTIVE,
         bounds=bounds,
     )
 
@@ -588,36 +605,62 @@ async def test_set_bounds_ok(
 @pytest.mark.parametrize(
     "bounds",
     [
-        metrics.Bounds(lower=0.0, upper=-2.0),
-        metrics.Bounds(lower=10.0, upper=-2.0),
-        metrics.Bounds(lower=10.0, upper=0.0),
+        PbBounds(lower=0.0, upper=-2.0),
+        PbBounds(lower=10.0, upper=-2.0),
+        PbBounds(lower=10.0, upper=0.0),
     ],
     ids=str,
 )
-async def test_set_bounds_fail(
-    bounds: metrics.Bounds, inverter99: microgrid.Component
-) -> None:
+async def test_set_bounds_fail(bounds: PbBounds, inverter99: PbComponent) -> None:
     """Test if charge is able to charge component."""
     client = _TestClient()
-    client.mock_stub.list_components.return_value = microgrid.ComponentList(
+    client.mock_stub.ListComponents.return_value = PbComponentList(
         components=[inverter99]
     )
 
     with pytest.raises(ValueError):
         await client.set_bounds(99, bounds.lower, bounds.upper)
-    client.mock_stub.add_inclusion_bounds.assert_not_called()
+    client.mock_stub.AddInclusionBounds.assert_not_called()
 
 
 async def test_set_bounds_grpc_error() -> None:
     """Test the components() method when the gRPC call fails."""
     client = _TestClient()
-    client.mock_stub.add_inclusion_bounds.side_effect = grpclib.GRPCError(
-        mock.MagicMock(name="mock_status"), "fake grpc error", "fake details"
+    client.mock_stub.AddInclusionBounds.side_effect = grpc.aio.AioRpcError(
+        mock.MagicMock(name="mock_status"),
+        mock.MagicMock(name="mock_initial_metadata"),
+        mock.MagicMock(name="mock_trailing_metadata"),
+        "fake grpc details",
+        "fake grpc debug_error_string",
     )
     with pytest.raises(
         ClientError,
-        match=r"Failed calling 'add_inclusion_bounds' on 'grpc://mock_host:1234': .* "
-        r"<status=<MagicMock name='mock_status\.name' id='.*'>>: fake grpc error "
-        r"\(fake details\)",
+        match=r"Failed calling 'AddInclusionBounds' on 'grpc://mock_host:1234': .* "
+        r"<status=<MagicMock name='mock_status\.name' id='.*'>>: fake grpc details "
+        r"\(fake grpc debug_error_string\)",
     ):
         await client.set_bounds(99, 0.0, 100.0)
+
+
+def _clear_components(component_list: PbComponentList) -> None:
+    while component_list.components:
+        component_list.components.pop()
+
+
+def _replace_components(
+    component_list: PbComponentList, components: list[PbComponent]
+) -> None:
+    _clear_components(component_list)
+    component_list.components.extend(components)
+
+
+def _clear_connections(connection_list: PbConnectionList) -> None:
+    while connection_list.connections:
+        connection_list.connections.pop()
+
+
+def _replace_connections(
+    connection_list: PbConnectionList, connections: list[PbConnection]
+) -> None:
+    _clear_connections(connection_list)
+    connection_list.connections.extend(connections)
