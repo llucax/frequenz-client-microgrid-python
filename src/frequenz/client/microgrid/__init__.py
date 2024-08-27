@@ -41,7 +41,8 @@ from ._component_states import (
 )
 from ._connection import Connection
 from ._exception import (
-    ClientError,
+    ApiClientError,
+    ClientNotConnected,
     DataLoss,
     EntityAlreadyExists,
     EntityNotFound,
@@ -65,12 +66,13 @@ from ._metadata import Location, Metadata
 
 __all__ = [
     "ApiClient",
+    "ApiClientError",
     "BatteryComponentState",
     "BatteryData",
     "BatteryError",
     "BatteryErrorCode",
     "BatteryRelayState",
-    "ClientError",
+    "ClientNotConnected",
     "Component",
     "ComponentCategory",
     "ComponentData",

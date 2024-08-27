@@ -34,8 +34,8 @@ from frequenz.client.base import retry
 
 from frequenz.client.microgrid import (
     ApiClient,
+    ApiClientError,
     BatteryData,
-    ClientError,
     Component,
     ComponentCategory,
     ComponentData,
@@ -203,7 +203,7 @@ async def test_components_grpc_error() -> None:
         "fake grpc debug_error_string",
     )
     with pytest.raises(
-        ClientError,
+        ApiClientError,
         match=r"Failed calling 'ListComponents' on 'grpc://mock_host:1234': .* "
         r"<status=<MagicMock name='mock_status\.name' id='.*'>>: fake grpc details "
         r"\(fake grpc debug_error_string\)",
@@ -350,7 +350,7 @@ async def test_connections_grpc_error() -> None:
         "fake grpc debug_error_string",
     )
     with pytest.raises(
-        ClientError,
+        ApiClientError,
         match=r"Failed calling 'ListConnections' on 'grpc://mock_host:1234': .* "
         r"<status=<MagicMock name='mock_status\.name' id='.*'>>: fake grpc details "
         r"\(fake grpc debug_error_string\)",
@@ -557,7 +557,7 @@ async def test_set_power_ok(power_w: float, meter83: PbComponent) -> None:
 
 
 async def test_set_power_grpc_error() -> None:
-    """Test set_power() raises ClientError when the gRPC call fails."""
+    """Test set_power() raises ApiClientError when the gRPC call fails."""
     client = _TestClient()
     client.mock_stub.SetPowerActive.side_effect = grpc.aio.AioRpcError(
         mock.MagicMock(name="mock_status"),
@@ -567,7 +567,7 @@ async def test_set_power_grpc_error() -> None:
         "fake grpc debug_error_string",
     )
     with pytest.raises(
-        ClientError,
+        ApiClientError,
         match=r"Failed calling 'SetPowerActive' on 'grpc://mock_host:1234': .* "
         r"<status=<MagicMock name='mock_status\.name' id='.*'>>: fake grpc details "
         r"\(fake grpc debug_error_string\)",
@@ -634,7 +634,7 @@ async def test_set_bounds_grpc_error() -> None:
         "fake grpc debug_error_string",
     )
     with pytest.raises(
-        ClientError,
+        ApiClientError,
         match=r"Failed calling 'AddInclusionBounds' on 'grpc://mock_host:1234': .* "
         r"<status=<MagicMock name='mock_status\.name' id='.*'>>: fake grpc details "
         r"\(fake grpc debug_error_string\)",

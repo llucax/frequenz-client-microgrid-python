@@ -50,7 +50,7 @@ from ._component_data import (
 )
 from ._connection import Connection
 from ._constants import RECEIVER_MAX_SIZE
-from ._exception import ClientError
+from ._exception import ApiClientError
 from ._metadata import Location, Metadata
 
 DEFAULT_GRPC_CALL_TIMEOUT = 60.0
@@ -105,7 +105,7 @@ class ApiClient:
             Iterator whose elements are all the components in the microgrid.
 
         Raises:
-            ClientError: If the are any errors communicating with the Microgrid API,
+            ApiClientError: If the are any errors communicating with the Microgrid API,
                 most likely a subclass of
                 [GrpcError][frequenz.client.microgrid.GrpcError].
         """
@@ -120,7 +120,7 @@ class ApiClient:
                 ),
             )
         except grpc.aio.AioRpcError as grpc_error:
-            raise ClientError.from_grpc_error(
+            raise ApiClientError.from_grpc_error(
                 server_url=self._server_url,
                 operation="ListComponents",
                 grpc_error=grpc_error,
@@ -192,7 +192,7 @@ class ApiClient:
             Microgrid connections matching the provided start and end filters.
 
         Raises:
-            ClientError: If the are any errors communicating with the Microgrid API,
+            ApiClientError: If the are any errors communicating with the Microgrid API,
                 most likely a subclass of
                 [GrpcError][frequenz.client.microgrid.GrpcError].
         """
@@ -211,7 +211,7 @@ class ApiClient:
                 ),
             )
         except grpc.aio.AioRpcError as grpc_error:
-            raise ClientError.from_grpc_error(
+            raise ApiClientError.from_grpc_error(
                 server_url=self._server_url,
                 operation="ListConnections",
                 grpc_error=grpc_error,
@@ -419,7 +419,7 @@ class ApiClient:
             power_w: power to set for the component.
 
         Raises:
-            ClientError: If the are any errors communicating with the Microgrid API,
+            ApiClientError: If the are any errors communicating with the Microgrid API,
                 most likely a subclass of
                 [GrpcError][frequenz.client.microgrid.GrpcError].
         """
@@ -432,7 +432,7 @@ class ApiClient:
                 ),
             )
         except grpc.aio.AioRpcError as grpc_error:
-            raise ClientError.from_grpc_error(
+            raise ApiClientError.from_grpc_error(
                 server_url=self._server_url,
                 operation="SetPowerActive",
                 grpc_error=grpc_error,
@@ -454,7 +454,7 @@ class ApiClient:
         Raises:
             ValueError: when upper bound is less than 0, or when lower bound is
                 greater than 0.
-            ClientError: If the are any errors communicating with the Microgrid API,
+            ApiClientError: If the are any errors communicating with the Microgrid API,
                 most likely a subclass of
                 [GrpcError][frequenz.client.microgrid.GrpcError].
         """
@@ -477,7 +477,7 @@ class ApiClient:
                 ),
             )
         except grpc.aio.AioRpcError as grpc_error:
-            raise ClientError.from_grpc_error(
+            raise ApiClientError.from_grpc_error(
                 server_url=self._server_url,
                 operation="AddInclusionBounds",
                 grpc_error=grpc_error,
