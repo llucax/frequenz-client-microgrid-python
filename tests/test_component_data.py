@@ -6,11 +6,22 @@
 from datetime import datetime, timezone
 
 import pytest
-from frequenz.microgrid.betterproto.frequenz.api import microgrid
-from frequenz.microgrid.betterproto.frequenz.api.common import metrics
-from frequenz.microgrid.betterproto.frequenz.api.common.metrics import electrical
-from frequenz.microgrid.betterproto.frequenz.api.microgrid import inverter
 
+# pylint: disable=no-name-in-module
+from frequenz.api.common.metrics.electrical_pb2 import AC as PbAc
+from frequenz.api.common.metrics_pb2 import Bounds as PbBounds
+from frequenz.api.common.metrics_pb2 import Metric as PbMetric
+from frequenz.api.microgrid.inverter_pb2 import (
+    ComponentState as PbInverterComponentState,
+)
+from frequenz.api.microgrid.inverter_pb2 import Data as PbInverterData
+from frequenz.api.microgrid.inverter_pb2 import Error as PbInverterError
+from frequenz.api.microgrid.inverter_pb2 import Inverter as PbInverter
+from frequenz.api.microgrid.inverter_pb2 import State as PbInverterState
+from frequenz.api.microgrid.microgrid_pb2 import ComponentData as PbComponentData
+from google.protobuf.timestamp_pb2 import Timestamp
+
+# pylint: enable=no-name-in-module
 from frequenz.client.microgrid import (
     ComponentData,
     InverterComponentState,
@@ -30,52 +41,48 @@ def test_inverter_data() -> None:
     """Verify the constructor for the InverterData class."""
     seconds = 1234567890
 
-    raw = microgrid.ComponentData(
+    raw = PbComponentData(
         id=5,
-        ts=datetime.fromtimestamp(seconds, timezone.utc),
-        inverter=inverter.Inverter(
-            state=inverter.State(
-                component_state=inverter.ComponentState.COMPONENT_STATE_DISCHARGING
+        ts=Timestamp(seconds=seconds),
+        inverter=PbInverter(
+            state=PbInverterState(
+                component_state=PbInverterComponentState.COMPONENT_STATE_DISCHARGING
             ),
-            errors=[inverter.Error(msg="error message")],
-            data=inverter.Data(
-                ac=electrical.Ac(
-                    frequency=metrics.Metric(value=50.1),
-                    power_active=metrics.Metric(
+            errors=[PbInverterError(msg="error message")],
+            data=PbInverterData(
+                ac=PbAc(
+                    frequency=PbMetric(value=50.1),
+                    power_active=PbMetric(
                         value=100.2,
-                        system_exclusion_bounds=metrics.Bounds(
-                            lower=-501.0, upper=501.0
-                        ),
-                        system_inclusion_bounds=metrics.Bounds(
+                        system_exclusion_bounds=PbBounds(lower=-501.0, upper=501.0),
+                        system_inclusion_bounds=PbBounds(
                             lower=-51_000.0, upper=51_000.0
                         ),
                     ),
-                    power_reactive=metrics.Metric(
+                    power_reactive=PbMetric(
                         value=200.3,
-                        system_exclusion_bounds=metrics.Bounds(
-                            lower=-502.0, upper=502.0
-                        ),
-                        system_inclusion_bounds=metrics.Bounds(
+                        system_exclusion_bounds=PbBounds(lower=-502.0, upper=502.0),
+                        system_inclusion_bounds=PbBounds(
                             lower=-52_000.0, upper=52_000.0
                         ),
                     ),
-                    phase_1=electrical.AcAcPhase(
-                        current=metrics.Metric(value=12.3),
-                        voltage=metrics.Metric(value=229.8),
-                        power_active=metrics.Metric(value=33.1),
-                        power_reactive=metrics.Metric(value=10.1),
+                    phase_1=PbAc.ACPhase(
+                        current=PbMetric(value=12.3),
+                        voltage=PbMetric(value=229.8),
+                        power_active=PbMetric(value=33.1),
+                        power_reactive=PbMetric(value=10.1),
                     ),
-                    phase_2=electrical.AcAcPhase(
-                        current=metrics.Metric(value=23.4),
-                        voltage=metrics.Metric(value=230.0),
-                        power_active=metrics.Metric(value=33.3),
-                        power_reactive=metrics.Metric(value=10.2),
+                    phase_2=PbAc.ACPhase(
+                        current=PbMetric(value=23.4),
+                        voltage=PbMetric(value=230.0),
+                        power_active=PbMetric(value=33.3),
+                        power_reactive=PbMetric(value=10.2),
                     ),
-                    phase_3=electrical.AcAcPhase(
-                        current=metrics.Metric(value=34.5),
-                        voltage=metrics.Metric(value=230.2),
-                        power_active=metrics.Metric(value=33.8),
-                        power_reactive=metrics.Metric(value=10.3),
+                    phase_3=PbAc.ACPhase(
+                        current=PbMetric(value=34.5),
+                        voltage=PbMetric(value=230.2),
+                        power_active=PbMetric(value=33.8),
+                        power_reactive=PbMetric(value=10.3),
                     ),
                 ),
             ),

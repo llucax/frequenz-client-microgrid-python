@@ -5,12 +5,15 @@
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Self
 
-from frequenz.microgrid.betterproto.frequenz.api import microgrid
+# pylint: disable=no-name-in-module
+from frequenz.api.microgrid.microgrid_pb2 import ComponentData as PbComponentData
 
 from ._component_error import BatteryError, InverterError
+
+# pylint: enable=no-name-in-module
 from ._component_states import (
     BatteryComponentState,
     BatteryRelayState,
@@ -35,10 +38,10 @@ class ComponentData(ABC):
     # data from a protobuf message. The whole protobuf message is stored as the `raw`
     # attribute. When `ComponentData` is not instantiated from a protobuf message,
     # i.e. using the constructor, `raw` will be set to `None`.
-    raw: microgrid.ComponentData | None = field(default=None, init=False)
+    raw: PbComponentData | None = field(default=None, init=False)
     """Raw component data as decoded from the wire."""
 
-    def _set_raw(self, raw: microgrid.ComponentData) -> None:
+    def _set_raw(self, raw: PbComponentData) -> None:
         """Store raw protobuf message.
 
         It is preferred to keep the dataclasses immutable (frozen) and make the `raw`
@@ -52,7 +55,7 @@ class ComponentData(ABC):
 
     @classmethod
     @abstractmethod
-    def from_proto(cls, raw: microgrid.ComponentData) -> Self:
+    def from_proto(cls, raw: PbComponentData) -> Self:
         """Create ComponentData from a protobuf message.
 
         Args:
@@ -119,7 +122,7 @@ class MeterData(ComponentData):
     """The AC power frequency in Hertz (Hz)."""
 
     @classmethod
-    def from_proto(cls, raw: microgrid.ComponentData) -> Self:
+    def from_proto(cls, raw: PbComponentData) -> Self:
         """Create MeterData from a protobuf message.
 
         Args:
@@ -130,7 +133,7 @@ class MeterData(ComponentData):
         """
         meter_data = cls(
             component_id=raw.id,
-            timestamp=raw.ts,
+            timestamp=raw.ts.ToDatetime(tzinfo=timezone.utc),
             active_power=raw.meter.data.ac.power_active.value,
             active_power_per_phase=(
                 raw.meter.data.ac.phase_1.power_active.value,
@@ -236,7 +239,7 @@ class BatteryData(ComponentData):  # pylint: disable=too-many-instance-attribute
     """List of errors in protobuf struct."""
 
     @classmethod
-    def from_proto(cls, raw: microgrid.ComponentData) -> Self:
+    def from_proto(cls, raw: PbComponentData) -> Self:
         """Create BatteryData from a protobuf message.
 
         Args:
@@ -248,7 +251,7 @@ class BatteryData(ComponentData):  # pylint: disable=too-many-instance-attribute
         raw_power = raw.battery.data.dc.power
         battery_data = cls(
             component_id=raw.id,
-            timestamp=raw.ts,
+            timestamp=raw.ts.ToDatetime(tzinfo=timezone.utc),
             soc=raw.battery.data.soc.avg,
             soc_lower_bound=raw.battery.data.soc.system_inclusion_bounds.lower,
             soc_upper_bound=raw.battery.data.soc.system_inclusion_bounds.upper,
@@ -374,7 +377,7 @@ class InverterData(ComponentData):  # pylint: disable=too-many-instance-attribut
     """List of errors from the component."""
 
     @classmethod
-    def from_proto(cls, raw: microgrid.ComponentData) -> Self:
+    def from_proto(cls, raw: PbComponentData) -> Self:
         """Create InverterData from a protobuf message.
 
         Args:
@@ -386,7 +389,7 @@ class InverterData(ComponentData):  # pylint: disable=too-many-instance-attribut
         raw_power = raw.inverter.data.ac.power_active
         inverter_data = cls(
             component_id=raw.id,
-            timestamp=raw.ts,
+            timestamp=raw.ts.ToDatetime(tzinfo=timezone.utc),
             active_power=raw.inverter.data.ac.power_active.value,
             active_power_per_phase=(
                 raw.inverter.data.ac.phase_1.power_active.value,
@@ -530,7 +533,7 @@ class EVChargerData(ComponentData):  # pylint: disable=too-many-instance-attribu
     """The state of the ev charger."""
 
     @classmethod
-    def from_proto(cls, raw: microgrid.ComponentData) -> Self:
+    def from_proto(cls, raw: PbComponentData) -> Self:
         """Create EVChargerData from a protobuf message.
 
         Args:
@@ -542,7 +545,7 @@ class EVChargerData(ComponentData):  # pylint: disable=too-many-instance-attribu
         raw_power = raw.ev_charger.data.ac.power_active
         ev_charger_data = cls(
             component_id=raw.id,
-            timestamp=raw.ts,
+            timestamp=raw.ts.ToDatetime(tzinfo=timezone.utc),
             active_power=raw_power.value,
             active_power_per_phase=(
                 raw.ev_charger.data.ac.phase_1.power_active.value,
