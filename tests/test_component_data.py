@@ -6,8 +6,6 @@
 from datetime import datetime, timezone
 
 import pytest
-
-# pylint: disable=no-name-in-module
 from frequenz.api.common.metrics.electrical_pb2 import AC as PbAc
 from frequenz.api.common.metrics_pb2 import Bounds as PbBounds
 from frequenz.api.common.metrics_pb2 import Metric as PbMetric
@@ -21,7 +19,6 @@ from frequenz.api.microgrid.inverter_pb2 import State as PbInverterState
 from frequenz.api.microgrid.microgrid_pb2 import ComponentData as PbComponentData
 from google.protobuf.timestamp_pb2 import Timestamp
 
-# pylint: enable=no-name-in-module
 from frequenz.client.microgrid import (
     ComponentData,
     InverterComponentState,

@@ -8,12 +8,9 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Self
 
-# pylint: disable=no-name-in-module
 from frequenz.api.microgrid.microgrid_pb2 import ComponentData as PbComponentData
 
 from ._component_error import BatteryError, InverterError
-
-# pylint: enable=no-name-in-module
 from ._component_states import (
     BatteryComponentState,
     BatteryRelayState,

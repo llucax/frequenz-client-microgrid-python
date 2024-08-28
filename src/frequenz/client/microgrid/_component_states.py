@@ -6,7 +6,6 @@
 from enum import Enum
 from typing import Self
 
-# pylint: disable=no-name-in-module
 from frequenz.api.microgrid.battery_pb2 import ComponentState as PbBatteryComponentState
 from frequenz.api.microgrid.battery_pb2 import RelayState as PbBatteryRelayState
 from frequenz.api.microgrid.ev_charger_pb2 import CableState as PbEvCableState
@@ -14,8 +13,6 @@ from frequenz.api.microgrid.ev_charger_pb2 import ComponentState as PbEvComponen
 from frequenz.api.microgrid.inverter_pb2 import (
     ComponentState as PbInverterComponentState,
 )
-
-# pylint: enable=no-name-in-module
 
 
 class BatteryComponentState(Enum):

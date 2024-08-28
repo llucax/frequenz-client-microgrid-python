@@ -9,8 +9,6 @@ from collections.abc import AsyncIterator, Awaitable, Callable, Iterable, Set
 from typing import Any, TypeVar, cast
 
 import grpc.aio
-
-# pylint: disable=no-name-in-module
 from frequenz.api.common.components_pb2 import ComponentCategory as PbComponentCategory
 from frequenz.api.common.metrics_pb2 import Bounds as PbBounds
 from frequenz.api.microgrid.microgrid_pb2 import ComponentData as PbComponentData
@@ -27,12 +25,10 @@ from frequenz.api.microgrid.microgrid_pb2 import (
     SetPowerActiveParam as PbSetPowerActiveParam,
 )
 from frequenz.api.microgrid.microgrid_pb2_grpc import MicrogridStub
-
-# pylint: enable=no-name-in-module
 from frequenz.channels import Receiver
 from frequenz.client.base import channel, retry, streaming
-from google.protobuf.empty_pb2 import Empty  # pylint: disable=no-name-in-module
-from google.protobuf.timestamp_pb2 import Timestamp  # pylint: disable=no-name-in-module
+from google.protobuf.empty_pb2 import Empty
+from google.protobuf.timestamp_pb2 import Timestamp
 
 from ._component import (
     Component,

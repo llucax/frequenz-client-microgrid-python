@@ -4,11 +4,8 @@
 """Tests for the microgrid component wrapper."""
 
 import pytest
-
-# pylint: disable=no-name-in-module
 from frequenz.api.common.components_pb2 import ComponentCategory as PbComponentCategory
 
-# pylint: enable=no-name-in-module
 from frequenz.client.microgrid._component import (
     Component,
     ComponentCategory,

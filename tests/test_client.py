@@ -11,8 +11,6 @@ from unittest import mock
 
 import grpc.aio
 import pytest
-
-# pylint: disable=no-name-in-module
 from frequenz.api.common.components_pb2 import ComponentCategory as PbComponentCategory
 from frequenz.api.common.components_pb2 import InverterType as PbInverterType
 from frequenz.api.common.metrics_pb2 import Bounds as PbBounds
@@ -28,8 +26,6 @@ from frequenz.api.microgrid.microgrid_pb2 import SetBoundsParam as PbSetBoundsPa
 from frequenz.api.microgrid.microgrid_pb2 import (
     SetPowerActiveParam as PbSetPowerActiveParam,
 )
-
-# pylint: enable=no-name-in-module
 from frequenz.client.base import retry
 
 from frequenz.client.microgrid import (

@@ -6,13 +6,10 @@
 from dataclasses import dataclass
 from enum import Enum
 
-# pylint: disable=no-name-in-module
 from frequenz.api.common.components_pb2 import ComponentCategory as PbComponentCategory
 from frequenz.api.microgrid.grid_pb2 import Metadata as PbGridMetadata
 from frequenz.api.microgrid.inverter_pb2 import Metadata as PbInverterMetadata
 from frequenz.api.microgrid.inverter_pb2 import Type as PbInverterType
-
-# pylint: enable=no-name-in-module
 
 
 class ComponentType(Enum):

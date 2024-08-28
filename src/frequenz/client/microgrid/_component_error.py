@@ -7,14 +7,11 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Self
 
-# pylint: disable=no-name-in-module
 from frequenz.api.microgrid.battery_pb2 import Error as PbBatteryError
 from frequenz.api.microgrid.battery_pb2 import ErrorCode as PbBatteryErrorCode
 from frequenz.api.microgrid.common_pb2 import ErrorLevel as PbErrorLevel
 from frequenz.api.microgrid.inverter_pb2 import Error as PbInverterError
 from frequenz.api.microgrid.inverter_pb2 import ErrorCode as PbInverterErrorCode
-
-# pylint: enable=no-name-in-module
 
 
 class ErrorLevel(Enum):
