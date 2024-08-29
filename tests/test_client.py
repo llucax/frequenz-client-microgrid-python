@@ -11,21 +11,8 @@ from unittest import mock
 
 import grpc.aio
 import pytest
-from frequenz.api.common.components_pb2 import ComponentCategory as PbComponentCategory
-from frequenz.api.common.components_pb2 import InverterType as PbInverterType
-from frequenz.api.common.metrics_pb2 import Bounds as PbBounds
-from frequenz.api.microgrid.grid_pb2 import Metadata as PbGridMetadata
-from frequenz.api.microgrid.inverter_pb2 import Metadata as PbInverterMetadata
-from frequenz.api.microgrid.microgrid_pb2 import Component as PbComponent
-from frequenz.api.microgrid.microgrid_pb2 import ComponentData as PbComponentData
-from frequenz.api.microgrid.microgrid_pb2 import ComponentList as PbComponentList
-from frequenz.api.microgrid.microgrid_pb2 import Connection as PbConnection
-from frequenz.api.microgrid.microgrid_pb2 import ConnectionFilter as PbConnectionFilter
-from frequenz.api.microgrid.microgrid_pb2 import ConnectionList as PbConnectionList
-from frequenz.api.microgrid.microgrid_pb2 import SetBoundsParam as PbSetBoundsParam
-from frequenz.api.microgrid.microgrid_pb2 import (
-    SetPowerActiveParam as PbSetPowerActiveParam,
-)
+from frequenz.api.common import components_pb2, metrics_pb2
+from frequenz.api.microgrid import grid_pb2, inverter_pb2, microgrid_pb2
 from frequenz.client.base import retry
 
 from frequenz.client.microgrid import (
@@ -65,17 +52,21 @@ class _TestClient(ApiClient):
 async def test_components() -> None:
     """Test the components() method."""
     client = _TestClient()
-    server_response = PbComponentList()
+    server_response = microgrid_pb2.ComponentList()
     client.mock_stub.ListComponents.return_value = server_response
     assert set(await client.components()) == set()
 
     server_response.components.append(
-        PbComponent(id=0, category=PbComponentCategory.COMPONENT_CATEGORY_METER)
+        microgrid_pb2.Component(
+            id=0, category=components_pb2.ComponentCategory.COMPONENT_CATEGORY_METER
+        )
     )
     assert set(await client.components()) == {Component(0, ComponentCategory.METER)}
 
     server_response.components.append(
-        PbComponent(id=0, category=PbComponentCategory.COMPONENT_CATEGORY_BATTERY)
+        microgrid_pb2.Component(
+            id=0, category=components_pb2.ComponentCategory.COMPONENT_CATEGORY_BATTERY
+        )
     )
     assert set(await client.components()) == {
         Component(0, ComponentCategory.METER),
@@ -83,7 +74,9 @@ async def test_components() -> None:
     }
 
     server_response.components.append(
-        PbComponent(id=0, category=PbComponentCategory.COMPONENT_CATEGORY_METER)
+        microgrid_pb2.Component(
+            id=0, category=components_pb2.ComponentCategory.COMPONENT_CATEGORY_METER
+        )
     )
     assert set(await client.components()) == {
         Component(0, ComponentCategory.METER),
@@ -93,7 +86,9 @@ async def test_components() -> None:
 
     # sensors are not counted as components by the API client
     server_response.components.append(
-        PbComponent(id=1, category=PbComponentCategory.COMPONENT_CATEGORY_SENSOR)
+        microgrid_pb2.Component(
+            id=1, category=components_pb2.ComponentCategory.COMPONENT_CATEGORY_SENSOR
+        )
     )
     assert set(await client.components()) == {
         Component(0, ComponentCategory.METER),
@@ -104,13 +99,20 @@ async def test_components() -> None:
     _replace_components(
         server_response,
         [
-            PbComponent(id=9, category=PbComponentCategory.COMPONENT_CATEGORY_METER),
-            PbComponent(
-                id=99, category=PbComponentCategory.COMPONENT_CATEGORY_INVERTER
+            microgrid_pb2.Component(
+                id=9, category=components_pb2.ComponentCategory.COMPONENT_CATEGORY_METER
             ),
-            PbComponent(id=666, category=PbComponentCategory.COMPONENT_CATEGORY_SENSOR),
-            PbComponent(
-                id=999, category=PbComponentCategory.COMPONENT_CATEGORY_BATTERY
+            microgrid_pb2.Component(
+                id=99,
+                category=components_pb2.ComponentCategory.COMPONENT_CATEGORY_INVERTER,
+            ),
+            microgrid_pb2.Component(
+                id=666,
+                category=components_pb2.ComponentCategory.COMPONENT_CATEGORY_SENSOR,
+            ),
+            microgrid_pb2.Component(
+                id=999,
+                category=components_pb2.ComponentCategory.COMPONENT_CATEGORY_BATTERY,
             ),
         ],
     )
@@ -123,28 +125,38 @@ async def test_components() -> None:
     _replace_components(
         server_response,
         [
-            PbComponent(id=99, category=PbComponentCategory.COMPONENT_CATEGORY_SENSOR),
-            PbComponent(
+            microgrid_pb2.Component(
+                id=99,
+                category=components_pb2.ComponentCategory.COMPONENT_CATEGORY_SENSOR,
+            ),
+            microgrid_pb2.Component(
                 id=100,
-                category=PbComponentCategory.COMPONENT_CATEGORY_UNSPECIFIED,
+                category=components_pb2.ComponentCategory.COMPONENT_CATEGORY_UNSPECIFIED,
             ),
-            PbComponent(id=104, category=PbComponentCategory.COMPONENT_CATEGORY_METER),
-            PbComponent(
+            microgrid_pb2.Component(
+                id=104,
+                category=components_pb2.ComponentCategory.COMPONENT_CATEGORY_METER,
+            ),
+            microgrid_pb2.Component(
                 id=105,
-                category=PbComponentCategory.COMPONENT_CATEGORY_INVERTER,
+                category=components_pb2.ComponentCategory.COMPONENT_CATEGORY_INVERTER,
             ),
-            PbComponent(
-                id=106, category=PbComponentCategory.COMPONENT_CATEGORY_BATTERY
+            microgrid_pb2.Component(
+                id=106,
+                category=components_pb2.ComponentCategory.COMPONENT_CATEGORY_BATTERY,
             ),
-            PbComponent(
+            microgrid_pb2.Component(
                 id=107,
-                category=PbComponentCategory.COMPONENT_CATEGORY_EV_CHARGER,
+                category=components_pb2.ComponentCategory.COMPONENT_CATEGORY_EV_CHARGER,
             ),
-            PbComponent(id=999, category=PbComponentCategory.COMPONENT_CATEGORY_SENSOR),
-            PbComponent(
+            microgrid_pb2.Component(
+                id=999,
+                category=components_pb2.ComponentCategory.COMPONENT_CATEGORY_SENSOR,
+            ),
+            microgrid_pb2.Component(
                 id=101,
-                category=PbComponentCategory.COMPONENT_CATEGORY_GRID,
-                grid=PbGridMetadata(rated_fuse_current=int(123.0)),
+                category=components_pb2.ComponentCategory.COMPONENT_CATEGORY_GRID,
+                grid=grid_pb2.Metadata(rated_fuse_current=int(123.0)),
             ),
         ],
     )
@@ -168,15 +180,23 @@ async def test_components() -> None:
     _replace_components(
         server_response,
         [
-            PbComponent(id=9, category=PbComponentCategory.COMPONENT_CATEGORY_METER),
-            PbComponent(id=666, category=PbComponentCategory.COMPONENT_CATEGORY_SENSOR),
-            PbComponent(
-                id=999, category=PbComponentCategory.COMPONENT_CATEGORY_BATTERY
+            microgrid_pb2.Component(
+                id=9, category=components_pb2.ComponentCategory.COMPONENT_CATEGORY_METER
             ),
-            PbComponent(
+            microgrid_pb2.Component(
+                id=666,
+                category=components_pb2.ComponentCategory.COMPONENT_CATEGORY_SENSOR,
+            ),
+            microgrid_pb2.Component(
+                id=999,
+                category=components_pb2.ComponentCategory.COMPONENT_CATEGORY_BATTERY,
+            ),
+            microgrid_pb2.Component(
                 id=99,
-                category=PbComponentCategory.COMPONENT_CATEGORY_INVERTER,
-                inverter=PbInverterMetadata(type=PbInverterType.INVERTER_TYPE_BATTERY),
+                category=components_pb2.ComponentCategory.COMPONENT_CATEGORY_INVERTER,
+                inverter=inverter_pb2.Metadata(
+                    type=components_pb2.InverterType.INVERTER_TYPE_BATTERY
+                ),
             ),
         ],
     )
@@ -214,33 +234,39 @@ async def test_connections() -> None:
     def assert_filter(*, starts: set[int], ends: set[int]) -> None:
         client.mock_stub.ListConnections.assert_called_once()
         filter_ = client.mock_stub.ListConnections.call_args[0][0]
-        assert isinstance(filter_, PbConnectionFilter)
+        assert isinstance(filter_, microgrid_pb2.ConnectionFilter)
         assert set(filter_.starts) == starts
         assert set(filter_.ends) == ends
 
-    components_response = PbComponentList()
-    connections_response = PbConnectionList()
+    components_response = microgrid_pb2.ComponentList()
+    connections_response = microgrid_pb2.ConnectionList()
     client.mock_stub.ListComponents.return_value = components_response
     client.mock_stub.ListConnections.return_value = connections_response
     assert set(await client.connections()) == set()
     assert_filter(starts=set(), ends=set())
 
-    connections_response.connections.append(PbConnection(start=0, end=0))
+    connections_response.connections.append(microgrid_pb2.Connection(start=0, end=0))
     assert set(await client.connections()) == {Connection(0, 0)}
 
     components_response.components.extend(
         [
-            PbComponent(id=7, category=PbComponentCategory.COMPONENT_CATEGORY_BATTERY),
-            PbComponent(id=9, category=PbComponentCategory.COMPONENT_CATEGORY_INVERTER),
+            microgrid_pb2.Component(
+                id=7,
+                category=components_pb2.ComponentCategory.COMPONENT_CATEGORY_BATTERY,
+            ),
+            microgrid_pb2.Component(
+                id=9,
+                category=components_pb2.ComponentCategory.COMPONENT_CATEGORY_INVERTER,
+            ),
         ]
     )
-    connections_response.connections.append(PbConnection(start=7, end=9))
+    connections_response.connections.append(microgrid_pb2.Connection(start=7, end=9))
     assert set(await client.connections()) == {
         Connection(0, 0),
         Connection(7, 9),
     }
 
-    connections_response.connections.append(PbConnection(start=0, end=0))
+    connections_response.connections.append(microgrid_pb2.Connection(start=0, end=0))
     assert set(await client.connections()) == {
         Connection(0, 0),
         Connection(7, 9),
@@ -250,17 +276,17 @@ async def test_connections() -> None:
     _replace_connections(
         connections_response,
         [
-            PbConnection(start=999, end=9),
-            PbConnection(start=99, end=19),
-            PbConnection(start=909, end=101),
-            PbConnection(start=99, end=91),
+            microgrid_pb2.Connection(start=999, end=9),
+            microgrid_pb2.Connection(start=99, end=19),
+            microgrid_pb2.Connection(start=909, end=101),
+            microgrid_pb2.Connection(start=99, end=91),
         ],
     )
     for component_id in [999, 99, 19, 909, 101, 91]:
         components_response.components.append(
-            PbComponent(
+            microgrid_pb2.Component(
                 id=component_id,
-                category=PbComponentCategory.COMPONENT_CATEGORY_BATTERY,
+                category=components_pb2.ComponentCategory.COMPONENT_CATEGORY_BATTERY,
             )
         )
     assert set(await client.connections()) == {
@@ -272,24 +298,24 @@ async def test_connections() -> None:
 
     for component_id in [1, 2, 3, 4, 5, 6, 7, 8]:
         components_response.components.append(
-            PbComponent(
+            microgrid_pb2.Component(
                 id=component_id,
-                category=PbComponentCategory.COMPONENT_CATEGORY_BATTERY,
+                category=components_pb2.ComponentCategory.COMPONENT_CATEGORY_BATTERY,
             )
         )
     _replace_connections(
         connections_response,
         [
-            PbConnection(start=1, end=2),
-            PbConnection(start=2, end=3),
-            PbConnection(start=2, end=4),
-            PbConnection(start=2, end=5),
-            PbConnection(start=4, end=3),
-            PbConnection(start=4, end=5),
-            PbConnection(start=4, end=6),
-            PbConnection(start=5, end=4),
-            PbConnection(start=5, end=7),
-            PbConnection(start=5, end=8),
+            microgrid_pb2.Connection(start=1, end=2),
+            microgrid_pb2.Connection(start=2, end=3),
+            microgrid_pb2.Connection(start=2, end=4),
+            microgrid_pb2.Connection(start=2, end=5),
+            microgrid_pb2.Connection(start=4, end=3),
+            microgrid_pb2.Connection(start=4, end=5),
+            microgrid_pb2.Connection(start=4, end=6),
+            microgrid_pb2.Connection(start=5, end=4),
+            microgrid_pb2.Connection(start=5, end=7),
+            microgrid_pb2.Connection(start=5, end=8),
         ],
     )
     assert set(await client.connections()) == {
@@ -355,38 +381,44 @@ async def test_connections_grpc_error() -> None:
 
 
 @pytest.fixture
-def meter83() -> PbComponent:
+def meter83() -> microgrid_pb2.Component:
     """Return a test meter component."""
-    return PbComponent(id=83, category=PbComponentCategory.COMPONENT_CATEGORY_METER)
+    return microgrid_pb2.Component(
+        id=83, category=components_pb2.ComponentCategory.COMPONENT_CATEGORY_METER
+    )
 
 
 @pytest.fixture
-def battery38() -> PbComponent:
+def battery38() -> microgrid_pb2.Component:
     """Return a test battery component."""
-    return PbComponent(id=38, category=PbComponentCategory.COMPONENT_CATEGORY_BATTERY)
+    return microgrid_pb2.Component(
+        id=38, category=components_pb2.ComponentCategory.COMPONENT_CATEGORY_BATTERY
+    )
 
 
 @pytest.fixture
-def inverter99() -> PbComponent:
+def inverter99() -> microgrid_pb2.Component:
     """Return a test inverter component."""
-    return PbComponent(id=99, category=PbComponentCategory.COMPONENT_CATEGORY_INVERTER)
+    return microgrid_pb2.Component(
+        id=99, category=components_pb2.ComponentCategory.COMPONENT_CATEGORY_INVERTER
+    )
 
 
 @pytest.fixture
-def ev_charger101() -> PbComponent:
+def ev_charger101() -> microgrid_pb2.Component:
     """Return a test EV charger component."""
-    return PbComponent(
-        id=101, category=PbComponentCategory.COMPONENT_CATEGORY_EV_CHARGER
+    return microgrid_pb2.Component(
+        id=101, category=components_pb2.ComponentCategory.COMPONENT_CATEGORY_EV_CHARGER
     )
 
 
 @pytest.fixture
 def component_list(
-    meter83: PbComponent,
-    battery38: PbComponent,
-    inverter99: PbComponent,
-    ev_charger101: PbComponent,
-) -> list[PbComponent]:
+    meter83: microgrid_pb2.Component,
+    battery38: microgrid_pb2.Component,
+    inverter99: microgrid_pb2.Component,
+    ev_charger101: microgrid_pb2.Component,
+) -> list[microgrid_pb2.Component]:
     """Return a list of test components."""
     return [meter83, battery38, inverter99, ev_charger101]
 
@@ -395,7 +427,7 @@ def component_list(
 async def test_data_component_not_found(method: str) -> None:
     """Test the meter_data() method."""
     client = _TestClient()
-    client.mock_stub.ListComponents.return_value = PbComponentList()
+    client.mock_stub.ListComponents.return_value = microgrid_pb2.ComponentList()
 
     # It should raise a ValueError for a missing component_id
     with pytest.raises(ValueError, match="Unable to find component with id 20"):
@@ -412,11 +444,11 @@ async def test_data_component_not_found(method: str) -> None:
     ],
 )
 async def test_data_bad_category(
-    method: str, component_id: int, component_list: list[PbComponent]
+    method: str, component_id: int, component_list: list[microgrid_pb2.Component]
 ) -> None:
     """Test the meter_data() method."""
     client = _TestClient()
-    client.mock_stub.ListComponents.return_value = PbComponentList(
+    client.mock_stub.ListComponents.return_value = microgrid_pb2.ComponentList(
         components=component_list
     )
 
@@ -440,18 +472,18 @@ async def test_component_data(
     method: str,
     component_id: int,
     component_class: type[ComponentData],
-    component_list: list[PbComponent],
+    component_list: list[microgrid_pb2.Component],
 ) -> None:
     """Test the meter_data() method."""
     client = _TestClient()
-    client.mock_stub.ListComponents.return_value = PbComponentList(
+    client.mock_stub.ListComponents.return_value = microgrid_pb2.ComponentList(
         components=component_list
     )
 
     async def stream_data(
         *args: Any, **kwargs: Any  # pylint: disable=unused-argument
-    ) -> AsyncIterator[PbComponentData]:
-        yield PbComponentData(id=component_id)
+    ) -> AsyncIterator[microgrid_pb2.ComponentData]:
+        yield microgrid_pb2.ComponentData(id=component_id)
 
     client.mock_stub.StreamComponentData.side_effect = stream_data
     receiver = await getattr(client, method)(component_id)
@@ -477,7 +509,7 @@ async def test_component_data_grpc_error(
     method: str,
     component_id: int,
     component_class: type[ComponentData],
-    component_list: list[PbComponent],
+    component_list: list[microgrid_pb2.Component],
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     """Test the components() method when the gRPC call fails."""
@@ -485,7 +517,7 @@ async def test_component_data_grpc_error(
     client = _TestClient(
         retry_strategy=retry.LinearBackoff(interval=0.0, jitter=0.0, limit=6)
     )
-    client.mock_stub.ListComponents.return_value = PbComponentList(
+    client.mock_stub.ListComponents.return_value = microgrid_pb2.ComponentList(
         components=component_list
     )
 
@@ -493,7 +525,7 @@ async def test_component_data_grpc_error(
 
     async def stream_data(
         *args: Any, **kwargs: Any  # pylint: disable=unused-argument
-    ) -> AsyncIterator[PbComponentData]:
+    ) -> AsyncIterator[microgrid_pb2.ComponentData]:
         nonlocal num_calls
         num_calls += 1
         if num_calls % 2:
@@ -504,7 +536,7 @@ async def test_component_data_grpc_error(
                 f"fake grpc details num_calls={num_calls}",
                 "fake grpc debug_error_string",
             )
-        yield PbComponentData(id=component_id)
+        yield microgrid_pb2.ComponentData(id=component_id)
 
     client.mock_stub.StreamComponentData.side_effect = stream_data
     receiver = await getattr(client, method)(component_id)
@@ -541,15 +573,19 @@ async def test_component_data_grpc_error(
 
 
 @pytest.mark.parametrize("power_w", [0, 0.0, 12, -75, 0.1, -0.0001, 134.0])
-async def test_set_power_ok(power_w: float, meter83: PbComponent) -> None:
+async def test_set_power_ok(power_w: float, meter83: microgrid_pb2.Component) -> None:
     """Test if charge is able to charge component."""
     client = _TestClient()
-    client.mock_stub.ListComponents.return_value = PbComponentList(components=[meter83])
+    client.mock_stub.ListComponents.return_value = microgrid_pb2.ComponentList(
+        components=[meter83]
+    )
 
     await client.set_power(component_id=83, power_w=power_w)
     client.mock_stub.SetPowerActive.assert_called_once()
     call_args = client.mock_stub.SetPowerActive.call_args[0]
-    assert call_args[0] == PbSetPowerActiveParam(component_id=83, power=power_w)
+    assert call_args[0] == microgrid_pb2.SetPowerActiveParam(
+        component_id=83, power=power_w
+    )
 
 
 async def test_set_power_grpc_error() -> None:
@@ -574,26 +610,28 @@ async def test_set_power_grpc_error() -> None:
 @pytest.mark.parametrize(
     "bounds",
     [
-        PbBounds(lower=0.0, upper=0.0),
-        PbBounds(lower=0.0, upper=2.0),
-        PbBounds(lower=-10.0, upper=0.0),
-        PbBounds(lower=-10.0, upper=2.0),
+        metrics_pb2.Bounds(lower=0.0, upper=0.0),
+        metrics_pb2.Bounds(lower=0.0, upper=2.0),
+        metrics_pb2.Bounds(lower=-10.0, upper=0.0),
+        metrics_pb2.Bounds(lower=-10.0, upper=2.0),
     ],
     ids=str,
 )
-async def test_set_bounds_ok(bounds: PbBounds, inverter99: PbComponent) -> None:
+async def test_set_bounds_ok(
+    bounds: metrics_pb2.Bounds, inverter99: microgrid_pb2.Component
+) -> None:
     """Test if charge is able to charge component."""
     client = _TestClient()
-    client.mock_stub.ListComponents.return_value = PbComponentList(
+    client.mock_stub.ListComponents.return_value = microgrid_pb2.ComponentList(
         components=[inverter99]
     )
 
     await client.set_bounds(99, bounds.lower, bounds.upper)
     client.mock_stub.AddInclusionBounds.assert_called_once()
     call_args = client.mock_stub.AddInclusionBounds.call_args[0]
-    assert call_args[0] == PbSetBoundsParam(
+    assert call_args[0] == microgrid_pb2.SetBoundsParam(
         component_id=99,
-        target_metric=PbSetBoundsParam.TargetMetric.TARGET_METRIC_POWER_ACTIVE,
+        target_metric=microgrid_pb2.SetBoundsParam.TargetMetric.TARGET_METRIC_POWER_ACTIVE,
         bounds=bounds,
     )
 
@@ -601,16 +639,18 @@ async def test_set_bounds_ok(bounds: PbBounds, inverter99: PbComponent) -> None:
 @pytest.mark.parametrize(
     "bounds",
     [
-        PbBounds(lower=0.0, upper=-2.0),
-        PbBounds(lower=10.0, upper=-2.0),
-        PbBounds(lower=10.0, upper=0.0),
+        metrics_pb2.Bounds(lower=0.0, upper=-2.0),
+        metrics_pb2.Bounds(lower=10.0, upper=-2.0),
+        metrics_pb2.Bounds(lower=10.0, upper=0.0),
     ],
     ids=str,
 )
-async def test_set_bounds_fail(bounds: PbBounds, inverter99: PbComponent) -> None:
+async def test_set_bounds_fail(
+    bounds: metrics_pb2.Bounds, inverter99: microgrid_pb2.Component
+) -> None:
     """Test if charge is able to charge component."""
     client = _TestClient()
-    client.mock_stub.ListComponents.return_value = PbComponentList(
+    client.mock_stub.ListComponents.return_value = microgrid_pb2.ComponentList(
         components=[inverter99]
     )
 
@@ -638,25 +678,27 @@ async def test_set_bounds_grpc_error() -> None:
         await client.set_bounds(99, 0.0, 100.0)
 
 
-def _clear_components(component_list: PbComponentList) -> None:
+def _clear_components(component_list: microgrid_pb2.ComponentList) -> None:
     while component_list.components:
         component_list.components.pop()
 
 
 def _replace_components(
-    component_list: PbComponentList, components: list[PbComponent]
+    component_list: microgrid_pb2.ComponentList,
+    components: list[microgrid_pb2.Component],
 ) -> None:
     _clear_components(component_list)
     component_list.components.extend(components)
 
 
-def _clear_connections(connection_list: PbConnectionList) -> None:
+def _clear_connections(connection_list: microgrid_pb2.ConnectionList) -> None:
     while connection_list.connections:
         connection_list.connections.pop()
 
 
 def _replace_connections(
-    connection_list: PbConnectionList, connections: list[PbConnection]
+    connection_list: microgrid_pb2.ConnectionList,
+    connections: list[microgrid_pb2.Connection],
 ) -> None:
     _clear_connections(connection_list)
     connection_list.connections.extend(connections)
