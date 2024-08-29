@@ -4,11 +4,8 @@
 """Tests for the microgrid component wrapper."""
 
 import pytest
+from frequenz.api.common import components_pb2
 
-# pylint: disable=no-name-in-module
-from frequenz.api.common.components_pb2 import ComponentCategory as PbComponentCategory
-
-# pylint: enable=no-name-in-module
 from frequenz.client.microgrid._component import (
     Component,
     ComponentCategory,
@@ -20,36 +17,42 @@ def test_component_category_from_protobuf() -> None:
     """Test the creating component category from protobuf."""
     assert (
         component_category_from_protobuf(
-            PbComponentCategory.COMPONENT_CATEGORY_UNSPECIFIED
+            components_pb2.ComponentCategory.COMPONENT_CATEGORY_UNSPECIFIED
         )
         == ComponentCategory.NONE
     )
 
     assert (
-        component_category_from_protobuf(PbComponentCategory.COMPONENT_CATEGORY_GRID)
+        component_category_from_protobuf(
+            components_pb2.ComponentCategory.COMPONENT_CATEGORY_GRID
+        )
         == ComponentCategory.GRID
     )
 
     assert (
-        component_category_from_protobuf(PbComponentCategory.COMPONENT_CATEGORY_METER)
+        component_category_from_protobuf(
+            components_pb2.ComponentCategory.COMPONENT_CATEGORY_METER
+        )
         == ComponentCategory.METER
     )
 
     assert (
         component_category_from_protobuf(
-            PbComponentCategory.COMPONENT_CATEGORY_INVERTER
+            components_pb2.ComponentCategory.COMPONENT_CATEGORY_INVERTER
         )
         == ComponentCategory.INVERTER
     )
 
     assert (
-        component_category_from_protobuf(PbComponentCategory.COMPONENT_CATEGORY_BATTERY)
+        component_category_from_protobuf(
+            components_pb2.ComponentCategory.COMPONENT_CATEGORY_BATTERY
+        )
         == ComponentCategory.BATTERY
     )
 
     assert (
         component_category_from_protobuf(
-            PbComponentCategory.COMPONENT_CATEGORY_EV_CHARGER
+            components_pb2.ComponentCategory.COMPONENT_CATEGORY_EV_CHARGER
         )
         == ComponentCategory.EV_CHARGER
     )
@@ -57,7 +60,9 @@ def test_component_category_from_protobuf() -> None:
     assert component_category_from_protobuf(666) == ComponentCategory.NONE  # type: ignore
 
     with pytest.raises(ValueError):
-        component_category_from_protobuf(PbComponentCategory.COMPONENT_CATEGORY_SENSOR)
+        component_category_from_protobuf(
+            components_pb2.ComponentCategory.COMPONENT_CATEGORY_SENSOR
+        )
 
 
 # pylint: disable=invalid-name

@@ -7,30 +7,23 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Self
 
-# pylint: disable=no-name-in-module
-from frequenz.api.microgrid.battery_pb2 import Error as PbBatteryError
-from frequenz.api.microgrid.battery_pb2 import ErrorCode as PbBatteryErrorCode
-from frequenz.api.microgrid.common_pb2 import ErrorLevel as PbErrorLevel
-from frequenz.api.microgrid.inverter_pb2 import Error as PbInverterError
-from frequenz.api.microgrid.inverter_pb2 import ErrorCode as PbInverterErrorCode
-
-# pylint: enable=no-name-in-module
+from frequenz.api.microgrid import battery_pb2, common_pb2, inverter_pb2
 
 
 class ErrorLevel(Enum):
     """Error level."""
 
-    UNSPECIFIED = PbErrorLevel.ERROR_LEVEL_UNSPECIFIED
+    UNSPECIFIED = common_pb2.ErrorLevel.ERROR_LEVEL_UNSPECIFIED
     """Unspecified component error."""
 
-    WARN = PbErrorLevel.ERROR_LEVEL_WARN
+    WARN = common_pb2.ErrorLevel.ERROR_LEVEL_WARN
     """Action must be taken to prevent a severe error from occurring in the future."""
 
-    CRITICAL = PbErrorLevel.ERROR_LEVEL_CRITICAL
+    CRITICAL = common_pb2.ErrorLevel.ERROR_LEVEL_CRITICAL
     """A severe error that causes the component to fail. Immediate action must be taken."""
 
     @classmethod
-    def from_pb(cls, code: PbErrorLevel.ValueType) -> Self:
+    def from_pb(cls, code: common_pb2.ErrorLevel.ValueType) -> Self:
         """Convert a protobuf error level value to this enum.
 
         Args:
@@ -48,78 +41,82 @@ class ErrorLevel(Enum):
 class BatteryErrorCode(Enum):
     """Battery error code."""
 
-    UNSPECIFIED = PbBatteryErrorCode.ERROR_CODE_UNSPECIFIED
+    UNSPECIFIED = battery_pb2.ErrorCode.ERROR_CODE_UNSPECIFIED
     """Unspecified battery error code."""
 
-    HIGH_CURRENT_CHARGE = PbBatteryErrorCode.ERROR_CODE_HIGH_CURRENT_CHARGE
+    HIGH_CURRENT_CHARGE = battery_pb2.ErrorCode.ERROR_CODE_HIGH_CURRENT_CHARGE
     """Charge current is too high."""
 
-    HIGH_CURRENT_DISCHARGE = PbBatteryErrorCode.ERROR_CODE_HIGH_CURRENT_DISCHARGE
+    HIGH_CURRENT_DISCHARGE = battery_pb2.ErrorCode.ERROR_CODE_HIGH_CURRENT_DISCHARGE
     """Discharge current is too high."""
 
-    HIGH_VOLTAGE = PbBatteryErrorCode.ERROR_CODE_HIGH_VOLTAGE
+    HIGH_VOLTAGE = battery_pb2.ErrorCode.ERROR_CODE_HIGH_VOLTAGE
     """Voltage is too high."""
 
-    LOW_VOLTAGE = PbBatteryErrorCode.ERROR_CODE_LOW_VOLTAGE
+    LOW_VOLTAGE = battery_pb2.ErrorCode.ERROR_CODE_LOW_VOLTAGE
     """Voltage is too low."""
 
-    HIGH_TEMPERATURE = PbBatteryErrorCode.ERROR_CODE_HIGH_TEMPERATURE
+    HIGH_TEMPERATURE = battery_pb2.ErrorCode.ERROR_CODE_HIGH_TEMPERATURE
     """Temperature is too high."""
 
-    LOW_TEMPERATURE = PbBatteryErrorCode.ERROR_CODE_LOW_TEMPERATURE
+    LOW_TEMPERATURE = battery_pb2.ErrorCode.ERROR_CODE_LOW_TEMPERATURE
     """Temperature is too low."""
 
-    HIGH_HUMIDITY = PbBatteryErrorCode.ERROR_CODE_HIGH_HUMIDITY
+    HIGH_HUMIDITY = battery_pb2.ErrorCode.ERROR_CODE_HIGH_HUMIDITY
     """Humidity is too high."""
 
-    EXCEEDED_SOP_CHARGE = PbBatteryErrorCode.ERROR_CODE_EXCEEDED_SOP_CHARGE
+    EXCEEDED_SOP_CHARGE = battery_pb2.ErrorCode.ERROR_CODE_EXCEEDED_SOP_CHARGE
     """Charge current has exceeded component bounds."""
 
-    EXCEEDED_SOP_DISCHARGE = PbBatteryErrorCode.ERROR_CODE_EXCEEDED_SOP_DISCHARGE
+    EXCEEDED_SOP_DISCHARGE = battery_pb2.ErrorCode.ERROR_CODE_EXCEEDED_SOP_DISCHARGE
     """Discharge current has exceeded component bounds."""
 
-    SYSTEM_IMBALANCE = PbBatteryErrorCode.ERROR_CODE_SYSTEM_IMBALANCE
+    SYSTEM_IMBALANCE = battery_pb2.ErrorCode.ERROR_CODE_SYSTEM_IMBALANCE
     """The battery blocks are not balanced with respect to each other."""
 
-    LOW_SOH = PbBatteryErrorCode.ERROR_CODE_LOW_SOH
+    LOW_SOH = battery_pb2.ErrorCode.ERROR_CODE_LOW_SOH
     """The State of health is low."""
 
-    BLOCK_ERROR = PbBatteryErrorCode.ERROR_CODE_BLOCK_ERROR
+    BLOCK_ERROR = battery_pb2.ErrorCode.ERROR_CODE_BLOCK_ERROR
     """One or more battery blocks have failed."""
 
-    CONTROLLER_ERROR = PbBatteryErrorCode.ERROR_CODE_CONTROLLER_ERROR
+    CONTROLLER_ERROR = battery_pb2.ErrorCode.ERROR_CODE_CONTROLLER_ERROR
     """The battery controller has failed."""
 
-    RELAY_ERROR = PbBatteryErrorCode.ERROR_CODE_RELAY_ERROR
+    RELAY_ERROR = battery_pb2.ErrorCode.ERROR_CODE_RELAY_ERROR
     """The battery's DC relays have failed."""
 
-    RELAY_CYCLE_LIMIT_REACHED = PbBatteryErrorCode.ERROR_CODE_RELAY_CYCLE_LIMIT_REACHED
+    RELAY_CYCLE_LIMIT_REACHED = (
+        battery_pb2.ErrorCode.ERROR_CODE_RELAY_CYCLE_LIMIT_REACHED
+    )
     """The battery's DC relays have reached the cycles limit in its lifetime specifications."""
 
-    FUSE_ERROR = PbBatteryErrorCode.ERROR_CODE_FUSE_ERROR
+    FUSE_ERROR = battery_pb2.ErrorCode.ERROR_CODE_FUSE_ERROR
     """The battery's fuse has failed."""
 
     EXTERNAL_POWER_SWITCH_ERROR = (
-        PbBatteryErrorCode.ERROR_CODE_EXTERNAL_POWER_SWITCH_ERROR
+        battery_pb2.ErrorCode.ERROR_CODE_EXTERNAL_POWER_SWITCH_ERROR
     )
     """The eternal power switch has failed."""
 
-    PRECHARGE_ERROR = PbBatteryErrorCode.ERROR_CODE_PRECHARGE_ERROR
+    PRECHARGE_ERROR = battery_pb2.ErrorCode.ERROR_CODE_PRECHARGE_ERROR
     """The precharge operation has failed."""
 
-    SYSTEM_PLAUSIBILITY_ERROR = PbBatteryErrorCode.ERROR_CODE_SYSTEM_PLAUSIBILITY_ERROR
+    SYSTEM_PLAUSIBILITY_ERROR = (
+        battery_pb2.ErrorCode.ERROR_CODE_SYSTEM_PLAUSIBILITY_ERROR
+    )
     """System plausibility checks have failed."""
 
     SYSTEM_UNDERVOLTAGE_SHUTDOWN = (
-        PbBatteryErrorCode.ERROR_CODE_SYSTEM_UNDERVOLTAGE_SHUTDOWN
+        battery_pb2.ErrorCode.ERROR_CODE_SYSTEM_UNDERVOLTAGE_SHUTDOWN
     )
     """System shut down due to extremely low voltage."""
 
-    CALIBRATION_NEEDED = PbBatteryErrorCode.ERROR_CODE_CALIBRATION_NEEDED
+    CALIBRATION_NEEDED = battery_pb2.ErrorCode.ERROR_CODE_CALIBRATION_NEEDED
     """The battery requires a calibration to reset its measurements."""
 
     @classmethod
-    def from_pb(cls, code: PbBatteryErrorCode.ValueType) -> Self:
+    def from_pb(cls, code: battery_pb2.ErrorCode.ValueType) -> Self:
         """Convert a protobuf error code value to this enum.
 
         Args:
@@ -148,7 +145,7 @@ class BatteryError:
     """The error message."""
 
     @classmethod
-    def from_pb(cls, raw: PbBatteryError) -> Self:
+    def from_pb(cls, raw: battery_pb2.Error) -> Self:
         """Create a new instance using a protobuf message to get the values.
 
         Args:
@@ -167,11 +164,11 @@ class BatteryError:
 class InverterErrorCode(Enum):
     """Inverter error code."""
 
-    UNSPECIFIED = PbInverterErrorCode.ERROR_CODE_UNSPECIFIED
+    UNSPECIFIED = inverter_pb2.ErrorCode.ERROR_CODE_UNSPECIFIED
     """Unspecified inverter error code."""
 
     @classmethod
-    def from_pb(cls, code: PbInverterErrorCode.ValueType) -> Self:
+    def from_pb(cls, code: inverter_pb2.ErrorCode.ValueType) -> Self:
         """Convert a protobuf error code value to this enum.
 
         Args:
@@ -200,7 +197,7 @@ class InverterError:
     """The error message."""
 
     @classmethod
-    def from_pb(cls, raw: PbInverterError) -> Self:
+    def from_pb(cls, raw: inverter_pb2.Error) -> Self:
         """Create a new instance using a protobuf message to get the values.
 
         Args:

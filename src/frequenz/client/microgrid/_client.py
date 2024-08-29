@@ -9,30 +9,12 @@ from collections.abc import AsyncIterator, Awaitable, Callable, Iterable, Set
 from typing import Any, TypeVar, cast
 
 import grpc.aio
-
-# pylint: disable=no-name-in-module
-from frequenz.api.common.components_pb2 import ComponentCategory as PbComponentCategory
-from frequenz.api.common.metrics_pb2 import Bounds as PbBounds
-from frequenz.api.microgrid.microgrid_pb2 import ComponentData as PbComponentData
-from frequenz.api.microgrid.microgrid_pb2 import ComponentFilter as PbComponentFilter
-from frequenz.api.microgrid.microgrid_pb2 import ComponentIdParam as PbComponentIdParam
-from frequenz.api.microgrid.microgrid_pb2 import ComponentList as PbComponentList
-from frequenz.api.microgrid.microgrid_pb2 import ConnectionFilter as PbConnectionFilter
-from frequenz.api.microgrid.microgrid_pb2 import ConnectionList as PbConnectionList
-from frequenz.api.microgrid.microgrid_pb2 import (
-    MicrogridMetadata as PbMicrogridMetadata,
-)
-from frequenz.api.microgrid.microgrid_pb2 import SetBoundsParam as PbSetBoundsParam
-from frequenz.api.microgrid.microgrid_pb2 import (
-    SetPowerActiveParam as PbSetPowerActiveParam,
-)
-from frequenz.api.microgrid.microgrid_pb2_grpc import MicrogridStub
-
-# pylint: enable=no-name-in-module
+from frequenz.api.common import components_pb2, metrics_pb2
+from frequenz.api.microgrid import microgrid_pb2, microgrid_pb2_grpc
 from frequenz.channels import Receiver
 from frequenz.client.base import channel, retry, streaming
-from google.protobuf.empty_pb2 import Empty  # pylint: disable=no-name-in-module
-from google.protobuf.timestamp_pb2 import Timestamp  # pylint: disable=no-name-in-module
+from google.protobuf.empty_pb2 import Empty
+from google.protobuf.timestamp_pb2 import Timestamp
 
 from ._component import (
     Component,
@@ -87,7 +69,7 @@ class ApiClient:
         self._server_url = server_url
         """The location of the microgrid API server as a URL."""
 
-        self.api = MicrogridStub(channel.parse_grpc_uri(server_url))
+        self.api = microgrid_pb2_grpc.MicrogridStub(channel.parse_grpc_uri(server_url))
         """The gRPC stub for the microgrid API."""
 
         self._broadcasters: dict[int, streaming.GrpcStreamBroadcaster[Any, Any]] = {}
@@ -113,9 +95,9 @@ class ApiClient:
             # grpc.aio is missing types and mypy thinks this is not awaitable,
             # but it is
             component_list = await cast(
-                Awaitable[PbComponentList],
+                Awaitable[microgrid_pb2.ComponentList],
                 self.api.ListComponents(
-                    PbComponentFilter(),
+                    microgrid_pb2.ComponentFilter(),
                     timeout=int(DEFAULT_GRPC_CALL_TIMEOUT),
                 ),
             )
@@ -127,7 +109,8 @@ class ApiClient:
             ) from grpc_error
 
         components_only = filter(
-            lambda c: c.category is not PbComponentCategory.COMPONENT_CATEGORY_SENSOR,
+            lambda c: c.category
+            is not components_pb2.ComponentCategory.COMPONENT_CATEGORY_SENSOR,
             component_list.components,
         )
         result: Iterable[Component] = map(
@@ -151,10 +134,10 @@ class ApiClient:
         Returns:
             the microgrid metadata.
         """
-        microgrid_metadata: PbMicrogridMetadata | None = None
+        microgrid_metadata: microgrid_pb2.MicrogridMetadata | None = None
         try:
             microgrid_metadata = await cast(
-                Awaitable[PbMicrogridMetadata],
+                Awaitable[microgrid_pb2.MicrogridMetadata],
                 self.api.GetMicrogridMetadata(
                     Empty(),
                     timeout=int(DEFAULT_GRPC_CALL_TIMEOUT),
@@ -196,14 +179,14 @@ class ApiClient:
                 most likely a subclass of
                 [GrpcError][frequenz.client.microgrid.GrpcError].
         """
-        connection_filter = PbConnectionFilter(starts=starts, ends=ends)
+        connection_filter = microgrid_pb2.ConnectionFilter(starts=starts, ends=ends)
         try:
             valid_components, all_connections = await asyncio.gather(
                 self.components(),
                 # grpc.aio is missing types and mypy thinks this is not
                 # awaitable, but it is
                 cast(
-                    Awaitable[PbConnectionList],
+                    Awaitable[microgrid_pb2.ConnectionList],
                     self.api.ListConnections(
                         connection_filter,
                         timeout=int(DEFAULT_GRPC_CALL_TIMEOUT),
@@ -237,7 +220,7 @@ class ApiClient:
         *,
         component_id: int,
         expected_category: ComponentCategory,
-        transform: Callable[[PbComponentData], _ComponentDataT],
+        transform: Callable[[microgrid_pb2.ComponentData], _ComponentDataT],
         maxsize: int,
     ) -> Receiver[_ComponentDataT]:
         """Return a new broadcaster receiver for a given `component_id`.
@@ -265,12 +248,14 @@ class ApiClient:
             broadcaster = streaming.GrpcStreamBroadcaster(
                 f"raw-component-data-{component_id}",
                 # We need to cast here because grpc says StreamComponentData is
-                # a grpc.CallIterator[PbComponentData] which is not an AsyncIterator,
-                # but it is a grpc.aio.UnaryStreamCall[..., PbComponentData], which it
-                # is.
+                # a grpc.CallIterator[microgrid_pb2.ComponentData] which is not an
+                # AsyncIterator, but it is a grpc.aio.UnaryStreamCall[...,
+                # microgrid_pb2.ComponentData], which it is.
                 lambda: cast(
-                    AsyncIterator[PbComponentData],
-                    self.api.StreamComponentData(PbComponentIdParam(id=component_id)),
+                    AsyncIterator[microgrid_pb2.ComponentData],
+                    self.api.StreamComponentData(
+                        microgrid_pb2.ComponentIdParam(id=component_id)
+                    ),
                 ),
                 transform,
                 retry_strategy=self._retry_strategy,
@@ -427,7 +412,9 @@ class ApiClient:
             await cast(
                 Awaitable[Empty],
                 self.api.SetPowerActive(
-                    PbSetPowerActiveParam(component_id=component_id, power=power_w),
+                    microgrid_pb2.SetPowerActiveParam(
+                        component_id=component_id, power=power_w
+                    ),
                     timeout=int(DEFAULT_GRPC_CALL_TIMEOUT),
                 ),
             )
@@ -444,7 +431,7 @@ class ApiClient:
         lower: float,
         upper: float,
     ) -> None:
-        """Send `PbSetBoundsParam`s received from a channel to the Microgrid service.
+        """Send `SetBoundsParam`s received from a channel to the Microgrid service.
 
         Args:
             component_id: ID of the component to set bounds for.
@@ -463,15 +450,17 @@ class ApiClient:
         if lower > 0:
             raise ValueError(f"Lower bound {lower} must be less than or equal to 0.")
 
-        target_metric = PbSetBoundsParam.TargetMetric.TARGET_METRIC_POWER_ACTIVE
+        target_metric = (
+            microgrid_pb2.SetBoundsParam.TargetMetric.TARGET_METRIC_POWER_ACTIVE
+        )
         try:
             await cast(
                 Awaitable[Timestamp],
                 self.api.AddInclusionBounds(
-                    PbSetBoundsParam(
+                    microgrid_pb2.SetBoundsParam(
                         component_id=component_id,
                         target_metric=target_metric,
-                        bounds=PbBounds(lower=lower, upper=upper),
+                        bounds=metrics_pb2.Bounds(lower=lower, upper=upper),
                     ),
                     timeout=int(DEFAULT_GRPC_CALL_TIMEOUT),
                 ),
