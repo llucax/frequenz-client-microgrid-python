@@ -6,6 +6,7 @@
 import asyncio
 import logging
 from collections.abc import AsyncIterator, Awaitable, Callable, Iterable, Set
+from dataclasses import replace
 from typing import Any, TypeVar, cast
 
 import grpc.aio
@@ -44,6 +45,16 @@ _ComponentDataT = TypeVar("_ComponentDataT", bound=ComponentData)
 _logger = logging.getLogger(__name__)
 
 
+DEFAULT_CHANNEL_OPTIONS = replace(
+    channel.ChannelOptions(), ssl=channel.SslOptions(enabled=False)
+)
+"""The default channel options for the microgrid API client.
+
+These are the same defaults as the common default options but with SSL disabled, as the
+microgrid API does not use SSL by default.
+"""
+
+
 class ApiClient:
     """A microgrid API client."""
 
@@ -51,6 +62,7 @@ class ApiClient:
         self,
         server_url: str,
         *,
+        channel_options: channel.ChannelOptions = DEFAULT_CHANNEL_OPTIONS,
         retry_strategy: retry.Strategy | None = None,
     ) -> None:
         """Initialize the class instance.
@@ -62,6 +74,8 @@ class ApiClient:
                 where the `port` should be an int between 0 and 65535 (defaulting to
                 9090) and `ssl` should be a boolean (defaulting to `false`).
                 For example: `grpc://localhost:1090?ssl=true`.
+            channel_options: The default options use to create the channel when not
+                specified in the URL.
             retry_strategy: The retry strategy to use to reconnect when the connection
                 to the streaming method is lost. By default a linear backoff strategy
                 is used.
@@ -69,7 +83,9 @@ class ApiClient:
         self._server_url = server_url
         """The location of the microgrid API server as a URL."""
 
-        self.api = microgrid_pb2_grpc.MicrogridStub(channel.parse_grpc_uri(server_url))
+        self.api = microgrid_pb2_grpc.MicrogridStub(
+            channel.parse_grpc_uri(server_url, defaults=channel_options)
+        )
         """The gRPC stub for the microgrid API."""
 
         self._broadcasters: dict[int, streaming.GrpcStreamBroadcaster[Any, Any]] = {}
