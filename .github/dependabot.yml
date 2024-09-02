@@ -27,7 +27,7 @@ updates:
           - "patch"
         exclude-patterns:
           - "frequenz-client-base*"
-          - "frequenz-microgrid-betterproto*"
+          - "frequenz-api-microgrid"
       optional:
         dependency-type: "development"
         update-types:
@@ -35,11 +35,11 @@ updates:
           - "patch"
         exclude-patterns:
           - "frequenz-client-base*"
-          - "frequenz-microgrid-betterproto*"
+          - "frequenz-api-microgrid"
       in-devel-patch:
         patterns:
           - "frequenz-client-base*"
-          - "frequenz-microgrid-betterproto*"
+          - "frequenz-api-microgrid"
         dependency-type: "production"
         update-types:
           - "patch"
