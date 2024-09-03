@@ -6,11 +6,16 @@
 
 ## Upgrading
 
-<!-- Here goes notes on how to upgrade from previous versions, including deprecations and what they should be replaced with -->
+- `ApiClient`:
+
+    * The class was renamed to `MicrogridApiClient`.
+    * The `api` attribute was renamed to `stub`.
+    * The constructor parameter `channel_options` was renamed to `channels_defaults` to match the name used in `BaseApiClient`.
+    * The constructor now accepts a `connect` parameter, which is `True` by default. If set to `False`, the client will not connect to the server upon instantiation. You can connect later by calling the `connect()` method.
 
 ## New Features
 
-<!-- Here goes the main new features and examples or instructions on how to use them -->
+- The client now inherits from `frequenz.client.base.BaseApiClient`, so it provides a few new features, like `disconnect()`ing or using it as a context manager. Please refer to the [`BaseApiClient` documentation](https://frequenz-floss.github.io/frequenz-client-base-python/latest/reference/frequenz/client/base/client/#frequenz.client.base.client.BaseApiClient) for more information on these features.
 
 ## Bug Fixes
 

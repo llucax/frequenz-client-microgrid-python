@@ -13,7 +13,7 @@ import grpc.aio
 from frequenz.api.common import components_pb2, metrics_pb2
 from frequenz.api.microgrid import microgrid_pb2, microgrid_pb2_grpc
 from frequenz.channels import Receiver
-from frequenz.client.base import channel, retry, streaming
+from frequenz.client.base import channel, client, retry, streaming
 from google.protobuf.empty_pb2 import Empty
 from google.protobuf.timestamp_pb2 import Timestamp
 
@@ -55,14 +55,15 @@ microgrid API does not use SSL by default.
 """
 
 
-class ApiClient:
+class MicrogridApiClient(client.BaseApiClient[microgrid_pb2_grpc.MicrogridStub]):
     """A microgrid API client."""
 
     def __init__(
         self,
         server_url: str,
         *,
-        channel_options: channel.ChannelOptions = DEFAULT_CHANNEL_OPTIONS,
+        channel_defaults: channel.ChannelOptions = DEFAULT_CHANNEL_OPTIONS,
+        connect: bool = True,
         retry_strategy: retry.Strategy | None = None,
     ) -> None:
         """Initialize the class instance.
@@ -74,27 +75,24 @@ class ApiClient:
                 where the `port` should be an int between 0 and 65535 (defaulting to
                 9090) and `ssl` should be a boolean (defaulting to `false`).
                 For example: `grpc://localhost:1090?ssl=true`.
-            channel_options: The default options use to create the channel when not
+            channel_defaults: The default options use to create the channel when not
                 specified in the URL.
+            connect: Whether to connect to the server as soon as a client instance is
+                created. If `False`, the client will not connect to the server until
+                [connect()][frequenz.client.base.client.BaseApiClient.connect] is
+                called.
             retry_strategy: The retry strategy to use to reconnect when the connection
                 to the streaming method is lost. By default a linear backoff strategy
                 is used.
         """
-        self._server_url = server_url
-        """The location of the microgrid API server as a URL."""
-
-        self.api = microgrid_pb2_grpc.MicrogridStub(
-            channel.parse_grpc_uri(server_url, defaults=channel_options)
+        super().__init__(
+            server_url,
+            microgrid_pb2_grpc.MicrogridStub,
+            connect=connect,
+            channel_defaults=channel_defaults,
         )
-        """The gRPC stub for the microgrid API."""
-
         self._broadcasters: dict[int, streaming.GrpcStreamBroadcaster[Any, Any]] = {}
         self._retry_strategy = retry_strategy
-
-    @property
-    def server_url(self) -> str:
-        """The server location in URL format."""
-        return self._server_url
 
     async def components(self) -> Iterable[Component]:
         """Fetch all the components present in the microgrid.
@@ -112,7 +110,7 @@ class ApiClient:
             # but it is
             component_list = await cast(
                 Awaitable[microgrid_pb2.ComponentList],
-                self.api.ListComponents(
+                self.stub.ListComponents(
                     microgrid_pb2.ComponentFilter(),
                     timeout=int(DEFAULT_GRPC_CALL_TIMEOUT),
                 ),
@@ -154,7 +152,7 @@ class ApiClient:
         try:
             microgrid_metadata = await cast(
                 Awaitable[microgrid_pb2.MicrogridMetadata],
-                self.api.GetMicrogridMetadata(
+                self.stub.GetMicrogridMetadata(
                     Empty(),
                     timeout=int(DEFAULT_GRPC_CALL_TIMEOUT),
                 ),
@@ -203,7 +201,7 @@ class ApiClient:
                 # awaitable, but it is
                 cast(
                     Awaitable[microgrid_pb2.ConnectionList],
-                    self.api.ListConnections(
+                    self.stub.ListConnections(
                         connection_filter,
                         timeout=int(DEFAULT_GRPC_CALL_TIMEOUT),
                     ),
@@ -269,7 +267,7 @@ class ApiClient:
                 # microgrid_pb2.ComponentData], which it is.
                 lambda: cast(
                     AsyncIterator[microgrid_pb2.ComponentData],
-                    self.api.StreamComponentData(
+                    self.stub.StreamComponentData(
                         microgrid_pb2.ComponentIdParam(id=component_id)
                     ),
                 ),
@@ -427,7 +425,7 @@ class ApiClient:
         try:
             await cast(
                 Awaitable[Empty],
-                self.api.SetPowerActive(
+                self.stub.SetPowerActive(
                     microgrid_pb2.SetPowerActiveParam(
                         component_id=component_id, power=power_w
                     ),
@@ -472,7 +470,7 @@ class ApiClient:
         try:
             await cast(
                 Awaitable[Timestamp],
-                self.api.AddInclusionBounds(
+                self.stub.AddInclusionBounds(
                     microgrid_pb2.SetBoundsParam(
                         component_id=component_id,
                         target_metric=target_metric,
