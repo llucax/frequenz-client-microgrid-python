@@ -10,6 +10,7 @@
 
     * The class was renamed to `MicrogridApiClient`.
     * The `api` attribute was renamed to `stub`.
+    * The constructor parameter `channel_options` was renamed to `channels_defaults` to match the name used in `BaseApiClient`.
     * The constructor now accepts a `connect` parameter, which is `True` by default. If set to `False`, the client will not connect to the server upon instantiation. You can connect later by calling the `connect()` method.
 
 ## New Features

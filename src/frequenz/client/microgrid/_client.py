@@ -62,7 +62,7 @@ class MicrogridApiClient(client.BaseApiClient[microgrid_pb2_grpc.MicrogridStub])
         self,
         server_url: str,
         *,
-        channel_options: channel.ChannelOptions = DEFAULT_CHANNEL_OPTIONS,
+        channel_defaults: channel.ChannelOptions = DEFAULT_CHANNEL_OPTIONS,
         connect: bool = True,
         retry_strategy: retry.Strategy | None = None,
     ) -> None:
@@ -75,7 +75,7 @@ class MicrogridApiClient(client.BaseApiClient[microgrid_pb2_grpc.MicrogridStub])
                 where the `port` should be an int between 0 and 65535 (defaulting to
                 9090) and `ssl` should be a boolean (defaulting to `false`).
                 For example: `grpc://localhost:1090?ssl=true`.
-            channel_options: The default options use to create the channel when not
+            channel_defaults: The default options use to create the channel when not
                 specified in the URL.
             connect: Whether to connect to the server as soon as a client instance is
                 created. If `False`, the client will not connect to the server until
@@ -89,7 +89,7 @@ class MicrogridApiClient(client.BaseApiClient[microgrid_pb2_grpc.MicrogridStub])
             server_url,
             microgrid_pb2_grpc.MicrogridStub,
             connect=connect,
-            channel_defaults=channel_options,
+            channel_defaults=channel_defaults,
         )
         self._broadcasters: dict[int, streaming.GrpcStreamBroadcaster[Any, Any]] = {}
         self._retry_strategy = retry_strategy
