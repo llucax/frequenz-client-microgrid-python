@@ -13,7 +13,7 @@ import grpc.aio
 from frequenz.api.common import components_pb2, metrics_pb2
 from frequenz.api.microgrid import microgrid_pb2, microgrid_pb2_grpc
 from frequenz.channels import Receiver
-from frequenz.client.base import channel, retry, streaming
+from frequenz.client.base import channel, client, retry, streaming
 from google.protobuf.empty_pb2 import Empty
 from google.protobuf.timestamp_pb2 import Timestamp
 
@@ -55,7 +55,7 @@ microgrid API does not use SSL by default.
 """
 
 
-class MicrogridApiClient:
+class MicrogridApiClient(client.BaseApiClient[microgrid_pb2_grpc.MicrogridStub]):
     """A microgrid API client."""
 
     def __init__(
@@ -80,21 +80,13 @@ class MicrogridApiClient:
                 to the streaming method is lost. By default a linear backoff strategy
                 is used.
         """
-        self._server_url = server_url
-        """The location of the microgrid API server as a URL."""
-
-        self.stub = microgrid_pb2_grpc.MicrogridStub(
-            channel.parse_grpc_uri(server_url, defaults=channel_options)
+        super().__init__(
+            server_url,
+            microgrid_pb2_grpc.MicrogridStub,
+            channel_defaults=channel_options,
         )
-        """The gRPC stub for the microgrid API."""
-
         self._broadcasters: dict[int, streaming.GrpcStreamBroadcaster[Any, Any]] = {}
         self._retry_strategy = retry_strategy
-
-    @property
-    def server_url(self) -> str:
-        """The server location in URL format."""
-        return self._server_url
 
     async def components(self) -> Iterable[Component]:
         """Fetch all the components present in the microgrid.

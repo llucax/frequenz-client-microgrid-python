@@ -13,7 +13,7 @@
 
 ## New Features
 
-<!-- Here goes the main new features and examples or instructions on how to use them -->
+- The client now inherits from `frequenz.client.base.BaseApiClient`, so it provides a few new features, like `disconnect()`ing or using it as a context manager. Please refer to the [`BaseApiClient` documentation](https://frequenz-floss.github.io/frequenz-client-base-python/latest/reference/frequenz/client/base/client/#frequenz.client.base.client.BaseApiClient) for more information on these features.
 
 ## Bug Fixes
 
