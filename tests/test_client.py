@@ -16,7 +16,7 @@ from frequenz.api.microgrid import grid_pb2, inverter_pb2, microgrid_pb2
 from frequenz.client.base import retry
 
 from frequenz.client.microgrid import (
-    ApiClient,
+    MicrogridApiClient,
     ApiClientError,
     BatteryData,
     Component,
@@ -32,7 +32,7 @@ from frequenz.client.microgrid import (
 from frequenz.client.microgrid._connection import Connection
 
 
-class _TestClient(ApiClient):
+class _TestClient(MicrogridApiClient):
     def __init__(self, *, retry_strategy: retry.Strategy | None = None) -> None:
         # Here we sadly can't use spec=MicrogridStub because the generated stub typing
         # is a mess, and for some reason inspection of gRPC methods doesn't work.

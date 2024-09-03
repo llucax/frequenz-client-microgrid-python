@@ -55,7 +55,7 @@ microgrid API does not use SSL by default.
 """
 
 
-class ApiClient:
+class MicrogridApiClient:
     """A microgrid API client."""
 
     def __init__(
