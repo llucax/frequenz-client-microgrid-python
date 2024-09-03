@@ -83,7 +83,7 @@ class MicrogridApiClient:
         self._server_url = server_url
         """The location of the microgrid API server as a URL."""
 
-        self.api = microgrid_pb2_grpc.MicrogridStub(
+        self.stub = microgrid_pb2_grpc.MicrogridStub(
             channel.parse_grpc_uri(server_url, defaults=channel_options)
         )
         """The gRPC stub for the microgrid API."""
@@ -112,7 +112,7 @@ class MicrogridApiClient:
             # but it is
             component_list = await cast(
                 Awaitable[microgrid_pb2.ComponentList],
-                self.api.ListComponents(
+                self.stub.ListComponents(
                     microgrid_pb2.ComponentFilter(),
                     timeout=int(DEFAULT_GRPC_CALL_TIMEOUT),
                 ),
@@ -154,7 +154,7 @@ class MicrogridApiClient:
         try:
             microgrid_metadata = await cast(
                 Awaitable[microgrid_pb2.MicrogridMetadata],
-                self.api.GetMicrogridMetadata(
+                self.stub.GetMicrogridMetadata(
                     Empty(),
                     timeout=int(DEFAULT_GRPC_CALL_TIMEOUT),
                 ),
@@ -203,7 +203,7 @@ class MicrogridApiClient:
                 # awaitable, but it is
                 cast(
                     Awaitable[microgrid_pb2.ConnectionList],
-                    self.api.ListConnections(
+                    self.stub.ListConnections(
                         connection_filter,
                         timeout=int(DEFAULT_GRPC_CALL_TIMEOUT),
                     ),
@@ -269,7 +269,7 @@ class MicrogridApiClient:
                 # microgrid_pb2.ComponentData], which it is.
                 lambda: cast(
                     AsyncIterator[microgrid_pb2.ComponentData],
-                    self.api.StreamComponentData(
+                    self.stub.StreamComponentData(
                         microgrid_pb2.ComponentIdParam(id=component_id)
                     ),
                 ),
@@ -427,7 +427,7 @@ class MicrogridApiClient:
         try:
             await cast(
                 Awaitable[Empty],
-                self.api.SetPowerActive(
+                self.stub.SetPowerActive(
                     microgrid_pb2.SetPowerActiveParam(
                         component_id=component_id, power=power_w
                     ),
@@ -472,7 +472,7 @@ class MicrogridApiClient:
         try:
             await cast(
                 Awaitable[Timestamp],
-                self.api.AddInclusionBounds(
+                self.stub.AddInclusionBounds(
                     microgrid_pb2.SetBoundsParam(
                         component_id=component_id,
                         target_metric=target_metric,

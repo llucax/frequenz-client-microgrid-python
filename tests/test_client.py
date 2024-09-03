@@ -16,7 +16,6 @@ from frequenz.api.microgrid import grid_pb2, inverter_pb2, microgrid_pb2
 from frequenz.client.base import retry
 
 from frequenz.client.microgrid import (
-    MicrogridApiClient,
     ApiClientError,
     BatteryData,
     Component,
@@ -28,6 +27,7 @@ from frequenz.client.microgrid import (
     InverterData,
     InverterType,
     MeterData,
+    MicrogridApiClient,
 )
 from frequenz.client.microgrid._connection import Connection
 
@@ -46,7 +46,7 @@ class _TestClient(MicrogridApiClient):
         mock_stub.StreamComponentData = mock.Mock("StreamComponentData")
         super().__init__("grpc://mock_host:1234", retry_strategy=retry_strategy)
         self.mock_stub = mock_stub
-        self.api = mock_stub
+        self.stub = mock_stub
 
 
 async def test_components() -> None:

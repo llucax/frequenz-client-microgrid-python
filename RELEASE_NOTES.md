@@ -6,7 +6,10 @@
 
 ## Upgrading
 
-- The `ApiClient` class was renamed to `MicrogridApiClient`.
+- `ApiClient`:
+
+    * The class was renamed to `MicrogridApiClient`.
+    * The `api` attribute was renamed to `stub`.
 
 ## New Features
 
