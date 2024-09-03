@@ -63,6 +63,7 @@ class MicrogridApiClient(client.BaseApiClient[microgrid_pb2_grpc.MicrogridStub])
         server_url: str,
         *,
         channel_options: channel.ChannelOptions = DEFAULT_CHANNEL_OPTIONS,
+        connect: bool = True,
         retry_strategy: retry.Strategy | None = None,
     ) -> None:
         """Initialize the class instance.
@@ -76,6 +77,10 @@ class MicrogridApiClient(client.BaseApiClient[microgrid_pb2_grpc.MicrogridStub])
                 For example: `grpc://localhost:1090?ssl=true`.
             channel_options: The default options use to create the channel when not
                 specified in the URL.
+            connect: Whether to connect to the server as soon as a client instance is
+                created. If `False`, the client will not connect to the server until
+                [connect()][frequenz.client.base.client.BaseApiClient.connect] is
+                called.
             retry_strategy: The retry strategy to use to reconnect when the connection
                 to the streaming method is lost. By default a linear backoff strategy
                 is used.
@@ -83,6 +88,7 @@ class MicrogridApiClient(client.BaseApiClient[microgrid_pb2_grpc.MicrogridStub])
         super().__init__(
             server_url,
             microgrid_pb2_grpc.MicrogridStub,
+            connect=connect,
             channel_defaults=channel_options,
         )
         self._broadcasters: dict[int, streaming.GrpcStreamBroadcaster[Any, Any]] = {}
