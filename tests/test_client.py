@@ -47,6 +47,7 @@ class _TestClient(MicrogridApiClient):
         super().__init__("grpc://mock_host:1234", retry_strategy=retry_strategy)
         self.mock_stub = mock_stub
         self._stub = mock_stub  # pylint: disable=protected-access
+        self._async_stub = mock_stub  # pylint: disable=protected-access
 
 
 async def test_components() -> None:
