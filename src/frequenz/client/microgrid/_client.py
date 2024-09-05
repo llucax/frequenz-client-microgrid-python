@@ -9,7 +9,6 @@ from collections.abc import Callable, Iterable, Set
 from dataclasses import replace
 from typing import Any, TypeVar
 
-import grpc.aio
 from frequenz.api.common import components_pb2, metrics_pb2
 from frequenz.api.microgrid import microgrid_pb2, microgrid_pb2_grpc
 from frequenz.channels import Receiver
@@ -94,7 +93,9 @@ class MicrogridApiClient(client.BaseApiClient[microgrid_pb2_grpc.MicrogridStub])
         self._broadcasters: dict[int, streaming.GrpcStreamBroadcaster[Any, Any]] = {}
         self._retry_strategy = retry_strategy
 
-    async def components(self) -> Iterable[Component]:
+    async def components(  # noqa: DOC502 (raises ApiClientError indirectly)
+        self,
+    ) -> Iterable[Component]:
         """Fetch all the components present in the microgrid.
 
         Returns:
@@ -105,17 +106,14 @@ class MicrogridApiClient(client.BaseApiClient[microgrid_pb2_grpc.MicrogridStub])
                 most likely a subclass of
                 [GrpcError][frequenz.client.microgrid.GrpcError].
         """
-        try:
-            component_list = await self._async_stub.ListComponents(
+        component_list = await client.call_stub_method(
+            self,
+            lambda: self._async_stub.ListComponents(
                 microgrid_pb2.ComponentFilter(),
                 timeout=int(DEFAULT_GRPC_CALL_TIMEOUT),
-            )
-        except grpc.aio.AioRpcError as grpc_error:
-            raise ApiClientError.from_grpc_error(
-                server_url=self._server_url,
-                operation="ListComponents",
-                grpc_error=grpc_error,
-            ) from grpc_error
+            ),
+            method_name="ListComponents",
+        )
 
         components_only = filter(
             lambda c: c.category
@@ -145,11 +143,15 @@ class MicrogridApiClient(client.BaseApiClient[microgrid_pb2_grpc.MicrogridStub])
         """
         microgrid_metadata: microgrid_pb2.MicrogridMetadata | None = None
         try:
-            microgrid_metadata = await self._async_stub.GetMicrogridMetadata(
-                Empty(),
-                timeout=int(DEFAULT_GRPC_CALL_TIMEOUT),
+            microgrid_metadata = await client.call_stub_method(
+                self,
+                lambda: self._async_stub.GetMicrogridMetadata(
+                    Empty(),
+                    timeout=int(DEFAULT_GRPC_CALL_TIMEOUT),
+                ),
+                method_name="GetMicrogridMetadata",
             )
-        except grpc.aio.AioRpcError:
+        except ApiClientError:
             _logger.exception("The microgrid metadata is not available.")
 
         if not microgrid_metadata:
@@ -164,7 +166,7 @@ class MicrogridApiClient(client.BaseApiClient[microgrid_pb2_grpc.MicrogridStub])
 
         return Metadata(microgrid_id=microgrid_metadata.microgrid_id, location=location)
 
-    async def connections(
+    async def connections(  # noqa: DOC502 (raises ApiClientError indirectly)
         self,
         starts: Set[int] = frozenset(),
         ends: Set[int] = frozenset(),
@@ -186,20 +188,18 @@ class MicrogridApiClient(client.BaseApiClient[microgrid_pb2_grpc.MicrogridStub])
                 [GrpcError][frequenz.client.microgrid.GrpcError].
         """
         connection_filter = microgrid_pb2.ConnectionFilter(starts=starts, ends=ends)
-        try:
-            valid_components, all_connections = await asyncio.gather(
-                self.components(),
-                self._async_stub.ListConnections(
+        valid_components, all_connections = await asyncio.gather(
+            self.components(),
+            client.call_stub_method(
+                self,
+                lambda: self._async_stub.ListConnections(
                     connection_filter,
                     timeout=int(DEFAULT_GRPC_CALL_TIMEOUT),
                 ),
-            )
-        except grpc.aio.AioRpcError as grpc_error:
-            raise ApiClientError.from_grpc_error(
-                server_url=self._server_url,
-                operation="ListConnections",
-                grpc_error=grpc_error,
-            ) from grpc_error
+                method_name="ListConnections",
+            ),
+        )
+
         # Filter out the components filtered in `components` method.
         # id=0 is an exception indicating grid component.
         valid_ids = {c.component_id for c in valid_components}
@@ -387,7 +387,9 @@ class MicrogridApiClient(client.BaseApiClient[microgrid_pb2_grpc.MicrogridStub])
             maxsize=maxsize,
         )
 
-    async def set_power(self, component_id: int, power_w: float) -> None:
+    async def set_power(  # noqa: DOC502 (raises ApiClientError indirectly)
+        self, component_id: int, power_w: float
+    ) -> None:
         """Send request to the Microgrid to set power for component.
 
         If power > 0, then component will be charged with this power.
@@ -404,19 +406,16 @@ class MicrogridApiClient(client.BaseApiClient[microgrid_pb2_grpc.MicrogridStub])
                 most likely a subclass of
                 [GrpcError][frequenz.client.microgrid.GrpcError].
         """
-        try:
-            await self._async_stub.SetPowerActive(
+        await client.call_stub_method(
+            self,
+            lambda: self._async_stub.SetPowerActive(
                 microgrid_pb2.SetPowerActiveParam(
                     component_id=component_id, power=power_w
                 ),
                 timeout=int(DEFAULT_GRPC_CALL_TIMEOUT),
-            )
-        except grpc.aio.AioRpcError as grpc_error:
-            raise ApiClientError.from_grpc_error(
-                server_url=self._server_url,
-                operation="SetPowerActive",
-                grpc_error=grpc_error,
-            ) from grpc_error
+            ),
+            method_name="SetPowerActive",
+        )
 
     async def set_bounds(
         self,
@@ -446,18 +445,15 @@ class MicrogridApiClient(client.BaseApiClient[microgrid_pb2_grpc.MicrogridStub])
         target_metric = (
             microgrid_pb2.SetBoundsParam.TargetMetric.TARGET_METRIC_POWER_ACTIVE
         )
-        try:
-            await self._async_stub.AddInclusionBounds(
+        await client.call_stub_method(
+            self,
+            lambda: self._async_stub.AddInclusionBounds(
                 microgrid_pb2.SetBoundsParam(
                     component_id=component_id,
                     target_metric=target_metric,
                     bounds=metrics_pb2.Bounds(lower=lower, upper=upper),
                 ),
                 timeout=int(DEFAULT_GRPC_CALL_TIMEOUT),
-            )
-        except grpc.aio.AioRpcError as grpc_error:
-            raise ApiClientError.from_grpc_error(
-                server_url=self._server_url,
-                operation="AddInclusionBounds",
-                grpc_error=grpc_error,
-            ) from grpc_error
+            ),
+            method_name="AddInclusionBounds",
+        )
