@@ -31,13 +31,15 @@ from ._exception import (
     UnknownError,
     UnrecognizedGrpcStatus,
 )
-from ._id import EnterpriseId, MicrogridId
+from ._id import ComponentId, EnterpriseId, MicrogridId
+from ._lifetime import Lifetime
 from ._location import Location
 from ._microgrid_info import MicrogridInfo, MicrogridStatus
 
 __all__ = [
     "ApiClientError",
     "ClientNotConnected",
+    "ComponentId",
     "DataLoss",
     "DeliveryArea",
     "EnergyMarketCodeType",
@@ -47,6 +49,7 @@ __all__ = [
     "GrpcError",
     "InternalError",
     "InvalidArgument",
+    "Lifetime",
     "Location",
     "MicrogridApiClient",
     "MicrogridId",
