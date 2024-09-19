@@ -16,6 +16,7 @@ from ._battery import (
 from ._category import ComponentCategory
 from ._chp import Chp
 from ._component import ComponentTypes
+from ._connection import ComponentConnection
 from ._converter import Converter
 from ._crypto_miner import CryptoMiner
 from ._electrolyzer import Electrolyzer
@@ -63,6 +64,7 @@ __all__ = [
     "Chp",
     "Component",
     "ComponentCategory",
+    "ComponentConnection",
     "ComponentStatus",
     "ComponentTypes",
     "Converter",
