@@ -5,14 +5,15 @@
 
 from __future__ import annotations
 
+import math
 from collections.abc import Iterable
 from dataclasses import replace
+from datetime import datetime, timedelta
 from typing import Any, assert_never
 
 from frequenz.api.common.v1.microgrid.components import components_pb2
-from frequenz.api.microgrid import microgrid_pb2_grpc
 from frequenz.api.microgrid.v1 import microgrid_pb2, microgrid_pb2_grpc
-from frequenz.client.base import channel, client, retry, streaming
+from frequenz.client.base import channel, client, conversion, retry, streaming
 from google.protobuf.empty_pb2 import Empty
 
 from ._exception import ClientNotConnected
@@ -213,7 +214,7 @@ class MicrogridApiClient(client.BaseApiClient[microgrid_pb2_grpc.MicrogridStub])
         """
         connection_list = await client.call_stub_method(
             self,
-            lambda: self._async_stub.ListConnections(
+            lambda: self.stub.ListConnections(
                 microgrid_pb2.ListConnectionsRequest(
                     starts=map(_get_component_id, sources),
                     ends=map(_get_component_id, destinations),
@@ -224,6 +225,85 @@ class MicrogridApiClient(client.BaseApiClient[microgrid_pb2_grpc.MicrogridStub])
         )
 
         return map(component_connection_from_proto, connection_list.connections)
+
+    async def set_component_power_active(  # noqa: DOC502 (raises ApiClientError indirectly)
+        self,
+        component: ComponentId | Component,
+        power: float,
+        *,
+        request_lifetime: timedelta | None = None,
+        validate_arguments: bool = True,
+    ) -> datetime | None:
+        """Set the active power output of a component.
+
+        The power output can be negative or positive, depending on whether the component
+        is supposed to be discharging or charging, respectively.
+
+        The power output is specified in watts.
+
+        The return value is the timestamp until which the given power command will
+        stay in effect. After this timestamp, the component's active power will be
+        set to 0, if the API receives no further command to change it before then.
+        By default, this timestamp will be set to the current time plus 60 seconds.
+
+        Note:
+            The target component may have a resolution of more than 1 W. E.g., an
+            inverter may have a resolution of 88 W. In such cases, the magnitude of
+            power will be floored to the nearest multiple of the resolution.
+
+        Performs the following sequence actions for the following component
+        categories:
+
+        * Inverter: Sends the discharge command to the inverter, making it deliver
+          AC power.
+        * TODO document missing.
+
+        Args:
+            component: The component to set the output active power of.
+            power: The output active power level, in watts. Negative values are for
+                discharging, and positive values are for charging.
+            request_lifetime: The duration, until which the request will stay in effect.
+                This duration has to be between 10 seconds and 15 minutes (including
+                both limits), otherwise the request will be rejected. It has
+                a resolution of a second, so fractions of a second will be rounded for
+                `timedelta` objects, and it is interpreted as seconds for `int` objects.
+                If not provided, it usually defaults to 60 seconds.
+            validate_arguments: Whether to validate the arguments before sending the
+                request. If `True` a `ValueError` will be raised if an argument is
+                invalid without even sending the request to the server, if `False`, the
+                request will be sent without validation.
+
+        Returns:
+            The timestamp until which the given power command will stay in effect, or
+                `None` if it was not provided.
+
+        Raises:
+            ApiClientError: If the are any errors communicating with the Microgrid API,
+                most likely a subclass of
+                [GrpcError][frequenz.client.microgrid.GrpcError].
+        """
+        lifetime_seconds = _delta_to_seconds(request_lifetime)
+
+        if validate_arguments:
+            _validate_set_power_args(power=power, request_lifetime=lifetime_seconds)
+
+        response = await client.call_stub_method(
+            self,
+            lambda: self.stub.SetComponentPowerActive(
+                microgrid_pb2.SetComponentPowerActiveRequest(
+                    component_id=_get_component_id(component),
+                    power=power,
+                    request_lifetime=lifetime_seconds,
+                ),
+                timeout=int(DEFAULT_GRPC_CALL_TIMEOUT),
+            ),
+            method_name="SetComponentPowerActive",
+        )
+
+        if response.HasField("valid_until"):
+            return conversion.to_datetime(response.valid_until)
+
+        return None
 
 
 def _get_component_id(component: ComponentId | Component) -> int:
@@ -248,3 +328,21 @@ def _get_category_value(
             return components_pb2.ComponentCategory.ValueType(category)
         case unexpected:
             assert_never(unexpected)
+
+
+def _delta_to_seconds(delta: timedelta | None) -> int | None:
+    """Convert a `timedelta` to seconds (or `None` if `None`)."""
+    return round(delta.total_seconds()) if delta is not None else None
+
+
+def _validate_set_power_args(*, power: float, request_lifetime: int | None) -> None:
+    """Validate the request lifetime."""
+    if math.isnan(power):
+        raise ValueError("power cannot be NaN")
+    if request_lifetime is not None:
+        minimum_lifetime = 10  # 10 seconds
+        maximum_lifetime = 900  # 15 minutes
+        if not minimum_lifetime <= request_lifetime <= maximum_lifetime:
+            raise ValueError(
+                "request_lifetime must be between 10 seconds and 15 minutes"
+            )
