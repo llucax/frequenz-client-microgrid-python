@@ -305,6 +305,89 @@ class MicrogridApiClient(client.BaseApiClient[microgrid_pb2_grpc.MicrogridStub])
 
         return None
 
+    async def set_component_power_reactive(  # noqa: DOC502 (raises ApiClientError indirectly)
+        self,
+        component: ComponentId | Component,
+        power: float,
+        *,
+        request_lifetime: timedelta | None = None,
+        validate_arguments: bool = True,
+    ) -> datetime | None:
+        """Set the reactive power output of a component.
+
+        We follow the polarity specified in the IEEE 1459-2010 standard
+        definitions, where:
+
+        - Positive reactive is inductive (current is lagging the voltage)
+        - Negative reactive is capacitive (current is leading the voltage)
+
+        The power output is specified in VAr.
+
+        The return value is the timestamp until which the given power command will
+        stay in effect. After this timestamp, the component's reactive power will
+        be set to 0, if the API receives no further command to change it before
+        then. By default, this timestamp will be set to the current time plus 60
+        seconds.
+
+        Note:
+            The target component may have a resolution of more than 1 VAr. E.g., an
+            inverter may have a resolution of 88 VAr. In such cases, the magnitude of
+            power will be floored to the nearest multiple of the resolution.
+
+        Performs the following sequence actions for the following component
+        categories:
+
+        * TODO document missing.
+
+        Args:
+            component: The component to set the output reactive power of.
+            power: The output reactive power level, in VAr. The standard of polarity is
+                as per the IEEE 1459-2010 standard definitions: positive reactive is
+                inductive (current is lagging the voltage); negative reactive is
+                capacitive (current is leading the voltage).
+            request_lifetime: The duration, until which the request will stay in effect.
+                This duration has to be between 10 seconds and 15 minutes (including
+                both limits), otherwise the request will be rejected. It has
+                a resolution of a second, so fractions of a second will be rounded for
+                `timedelta` objects, and it is interpreted as seconds for `int` objects.
+                If not provided, it usually defaults to 60 seconds.
+            validate_arguments: Whether to validate the arguments before sending the
+                request. If `True` a `ValueError` will be raised if an argument is
+                invalid without even sending the request to the server, if `False`, the
+                request will be sent without validation.
+
+        Returns:
+            The timestamp until which the given power command will stay in effect, or
+                `None` if it was not provided.
+
+        Raises:
+            ApiClientError: If the are any errors communicating with the Microgrid API,
+                most likely a subclass of
+                [GrpcError][frequenz.client.microgrid.GrpcError].
+        """
+        lifetime_seconds = _delta_to_seconds(request_lifetime)
+
+        if validate_arguments:
+            _validate_set_power_args(power=power, request_lifetime=lifetime_seconds)
+
+        response = await client.call_stub_method(
+            self,
+            lambda: self._async_stub.SetComponentPowerReactive(
+                microgrid_pb2.SetComponentPowerReactiveRequest(
+                    component_id=_get_component_id(component),
+                    power=power,
+                    request_lifetime=lifetime_seconds,
+                ),
+                timeout=int(DEFAULT_GRPC_CALL_TIMEOUT),
+            ),
+            method_name="SetComponentPowerReactive",
+        )
+
+        if response.HasField("valid_until"):
+            return conversion.to_datetime(response.valid_until)
+
+        return None
+
 
 def _get_component_id(component: ComponentId | Component) -> int:
     """Get the component ID from a component or component ID."""
