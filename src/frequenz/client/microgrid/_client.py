@@ -9,10 +9,12 @@ import math
 from collections.abc import Iterable
 from dataclasses import replace
 from datetime import datetime, timedelta
-from typing import Any, assert_never
+from typing import assert_never
 
+from frequenz.api.common.v1.metrics import metric_sample_pb2
 from frequenz.api.common.v1.microgrid.components import components_pb2
 from frequenz.api.microgrid.v1 import microgrid_pb2, microgrid_pb2_grpc
+from frequenz.channels import Receiver
 from frequenz.client.base import channel, client, conversion, retry, streaming
 from google.protobuf.empty_pb2 import Empty
 
@@ -26,6 +28,9 @@ from .component._component import ComponentTypes
 from .component._component_proto import component_from_proto
 from .component._connection import ComponentConnection
 from .component._connection_proto import component_connection_from_proto
+from .component._data_samples import ComponentDataSamples
+from .component._data_samples_proto import component_data_sample_from_proto
+from .metrics._metric import Metric
 
 DEFAULT_GRPC_CALL_TIMEOUT = 60.0
 """The default timeout for gRPC calls made by this client (in seconds)."""
@@ -76,7 +81,12 @@ class MicrogridApiClient(client.BaseApiClient[microgrid_pb2_grpc.MicrogridStub])
             connect=connect,
             channel_defaults=channel_defaults,
         )
-        self._broadcasters: dict[int, streaming.GrpcStreamBroadcaster[Any, Any]] = {}
+        self._component_data_samples_broadcasters: dict[
+            str,
+            streaming.GrpcStreamBroadcaster[
+                microgrid_pb2.ReceiveComponentDataStreamResponse, ComponentDataSamples
+            ],
+        ] = {}
         self._retry_strategy = retry_strategy
 
     @property
@@ -372,7 +382,7 @@ class MicrogridApiClient(client.BaseApiClient[microgrid_pb2_grpc.MicrogridStub])
 
         response = await client.call_stub_method(
             self,
-            lambda: self._async_stub.SetComponentPowerReactive(
+            lambda: self.stub.SetComponentPowerReactive(
                 microgrid_pb2.SetComponentPowerReactiveRequest(
                     component_id=_get_component_id(component),
                     power=power,
@@ -388,6 +398,68 @@ class MicrogridApiClient(client.BaseApiClient[microgrid_pb2_grpc.MicrogridStub])
 
         return None
 
+    # noqa: DOC502 (Raises ApiClientError indirectly)
+    async def receive_component_data_samples_stream(
+        self,
+        component: ComponentId | Component,
+        metrics: Iterable[Metric | int],
+        *,
+        buffer_size: int = 50,
+    ) -> Receiver[ComponentDataSamples]:
+        """Stream data samples from a component.
+
+        At least one metric must be specified. If no metric is specified, then the
+        stream will raise an error.
+
+        Warning:
+            Components may not support all metrics. If a component does not support
+            a given metric, then the returned data stream will not contain that metric.
+
+            There is no way to tell if a metric is not being received because the
+            component does not support it or because there is a transient issue when
+            retrieving the metric from the component.
+
+            The supported metrics by a component can even change with time, for example,
+            if a component is updated with new firmware.
+
+        Args:
+            component: The component to stream data from.
+            metrics: List of metrics to return. Only the specified metrics will be
+                returned.
+            buffer_size: The maximum number of messages to buffer in the returned
+                receiver. After this limit is reached, the oldest messages will be
+                dropped.
+
+        Returns:
+            The data stream from the component.
+        """
+        component_id = _get_component_id(component)
+        metrics_set = frozenset([_get_metric_value(m) for m in metrics])
+        key = f"{component_id}-{hash(metrics_set)}"
+        broadcaster = self._component_data_samples_broadcasters.get(key)
+        if broadcaster is None:
+            client_id = hex(id(self))[2:]
+            stream_name = f"microgrid-client-{client_id}-component-data-{key}"
+            create_filter = (
+                microgrid_pb2.ReceiveComponentDataStreamRequest.ComponentDataStreamFilter
+            )
+            broadcaster = streaming.GrpcStreamBroadcaster(
+                stream_name,
+                lambda: aiter(
+                    self.stub.ReceiveComponentDataStream(
+                        microgrid_pb2.ReceiveComponentDataStreamRequest(
+                            component_id=_get_component_id(component),
+                            filter=create_filter(metrics=metrics_set),
+                        ),
+                        timeout=int(DEFAULT_GRPC_CALL_TIMEOUT),
+                    )
+                ),
+                lambda msg: component_data_sample_from_proto(msg.data),
+                retry_strategy=self._retry_strategy,
+            )
+            self._component_data_samples_broadcasters[key] = broadcaster
+        return broadcaster.new_receiver(maxsize=buffer_size)
+
 
 def _get_component_id(component: ComponentId | Component) -> int:
     """Get the component ID from a component or component ID."""
@@ -396,6 +468,17 @@ def _get_component_id(component: ComponentId | Component) -> int:
             return int(component)
         case Component():
             return int(component.id)
+        case unexpected:
+            assert_never(unexpected)
+
+
+def _get_metric_value(metric: Metric | int) -> metric_sample_pb2.Metric.ValueType:
+    """Get the metric ID from a metric or metric ID."""
+    match metric:
+        case Metric():
+            return metric_sample_pb2.Metric.ValueType(metric.value)
+        case int():
+            return metric_sample_pb2.Metric.ValueType(metric)
         case unexpected:
             assert_never(unexpected)
 
