@@ -417,7 +417,7 @@ class MicrogridApiClient(client.BaseApiClient[microgrid_pb2_grpc.MicrogridStub])
             method_name="SetPowerActive",
         )
 
-    async def set_bounds(
+    async def set_bounds(  # noqa: DOC503 (raises ApiClientError indirectly)
         self,
         component_id: int,
         lower: float,
