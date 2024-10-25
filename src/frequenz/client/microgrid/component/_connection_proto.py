@@ -24,6 +24,11 @@ def component_connection_from_proto(
 
     source_component_id = ComponentId(message.source_component_id)
     destination_component_id = ComponentId(message.destination_component_id)
+    if source_component_id == destination_component_id:
+        major_issues.append(
+            f"source and destination are the same: {source_component_id}",
+        )
+
     lifetime = _get_operational_lifetime_from_proto(
         message, major_issues=major_issues, minor_issues=minor_issues
     )
