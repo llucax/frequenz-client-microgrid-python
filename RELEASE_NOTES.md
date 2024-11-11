@@ -1,5 +1,5 @@
 # Frequenz Microgrid API Client Release Notes
 
-## Bug Fixes
+## New Features
 
-- Fix a bug where SSL was enabled by default. It is now disabled by default as in previous versions.
+- The client now supports setting reactive power for components through the new `set_reactive_power` method.
