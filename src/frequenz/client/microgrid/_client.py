@@ -3,6 +3,8 @@
 
 """Client for requests to the Microgrid API."""
 
+from __future__ import annotations
+
 import asyncio
 import logging
 from collections.abc import Callable, Iterable, Set
@@ -31,7 +33,7 @@ from ._component_data import (
 )
 from ._connection import Connection
 from ._constants import RECEIVER_MAX_SIZE
-from ._exception import ApiClientError
+from ._exception import ApiClientError, ClientNotConnected
 from ._metadata import Location, Metadata
 
 DEFAULT_GRPC_CALL_TIMEOUT = 60.0
@@ -89,9 +91,19 @@ class MicrogridApiClient(client.BaseApiClient[microgrid_pb2_grpc.MicrogridStub])
             connect=connect,
             channel_defaults=channel_defaults,
         )
-        self._async_stub: microgrid_pb2_grpc.MicrogridAsyncStub = self.stub  # type: ignore
         self._broadcasters: dict[int, streaming.GrpcStreamBroadcaster[Any, Any]] = {}
         self._retry_strategy = retry_strategy
+
+    @property
+    def stub(self) -> microgrid_pb2_grpc.MicrogridAsyncStub:
+        """The gRPC stub for the API."""
+        if self.channel is None or self._stub is None:
+            raise ClientNotConnected(server_url=self.server_url, operation="stub")
+        # This type: ignore is needed because we need to cast the sync stub to
+        # the async stub, but we can't use cast because the async stub doesn't
+        # actually exists to the eyes of the interpreter, it only exists for the
+        # type-checker, so it can only be used for type hints.
+        return self._stub  # type: ignore
 
     async def components(  # noqa: DOC502 (raises ApiClientError indirectly)
         self,
@@ -108,7 +120,7 @@ class MicrogridApiClient(client.BaseApiClient[microgrid_pb2_grpc.MicrogridStub])
         """
         component_list = await client.call_stub_method(
             self,
-            lambda: self._async_stub.ListComponents(
+            lambda: self.stub.ListComponents(
                 microgrid_pb2.ComponentFilter(),
                 timeout=int(DEFAULT_GRPC_CALL_TIMEOUT),
             ),
@@ -145,7 +157,7 @@ class MicrogridApiClient(client.BaseApiClient[microgrid_pb2_grpc.MicrogridStub])
         try:
             microgrid_metadata = await client.call_stub_method(
                 self,
-                lambda: self._async_stub.GetMicrogridMetadata(
+                lambda: self.stub.GetMicrogridMetadata(
                     Empty(),
                     timeout=int(DEFAULT_GRPC_CALL_TIMEOUT),
                 ),
@@ -192,7 +204,7 @@ class MicrogridApiClient(client.BaseApiClient[microgrid_pb2_grpc.MicrogridStub])
             self.components(),
             client.call_stub_method(
                 self,
-                lambda: self._async_stub.ListConnections(
+                lambda: self.stub.ListConnections(
                     connection_filter,
                     timeout=int(DEFAULT_GRPC_CALL_TIMEOUT),
                 ),
@@ -249,12 +261,15 @@ class MicrogridApiClient(client.BaseApiClient[microgrid_pb2_grpc.MicrogridStub])
             broadcaster = streaming.GrpcStreamBroadcaster(
                 f"raw-component-data-{component_id}",
                 lambda: aiter(
-                    self._async_stub.StreamComponentData(
+                    self.stub.StreamComponentData(
                         microgrid_pb2.ComponentIdParam(id=component_id)
                     )
                 ),
                 transform,
                 retry_strategy=self._retry_strategy,
+                # We don't expect any data stream to end, so if it is exhausted for any
+                # reason we want to keep retrying
+                retry_on_exhausted_stream=True,
             )
             self._broadcasters[component_id] = broadcaster
         return broadcaster.new_receiver(maxsize=maxsize)
@@ -408,7 +423,7 @@ class MicrogridApiClient(client.BaseApiClient[microgrid_pb2_grpc.MicrogridStub])
         """
         await client.call_stub_method(
             self,
-            lambda: self._async_stub.SetPowerActive(
+            lambda: self.stub.SetPowerActive(
                 microgrid_pb2.SetPowerActiveParam(
                     component_id=component_id, power=power_w
                 ),
@@ -447,7 +462,7 @@ class MicrogridApiClient(client.BaseApiClient[microgrid_pb2_grpc.MicrogridStub])
         )
         await client.call_stub_method(
             self,
-            lambda: self._async_stub.AddInclusionBounds(
+            lambda: self.stub.AddInclusionBounds(
                 microgrid_pb2.SetBoundsParam(
                     component_id=component_id,
                     target_metric=target_metric,
