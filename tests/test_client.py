@@ -42,6 +42,7 @@ class _TestClient(MicrogridApiClient):
         mock_stub.ListComponents = mock.AsyncMock("ListComponents")
         mock_stub.ListConnections = mock.AsyncMock("ListConnections")
         mock_stub.SetPowerActive = mock.AsyncMock("SetPowerActive")
+        mock_stub.SetPowerReactive = mock.AsyncMock("SetPowerReactive")
         mock_stub.AddInclusionBounds = mock.AsyncMock("AddInclusionBounds")
         mock_stub.StreamComponentData = mock.Mock("StreamComponentData")
         super().__init__("grpc://mock_host:1234", retry_strategy=retry_strategy)
@@ -605,6 +606,48 @@ async def test_set_power_grpc_error() -> None:
         r"\(fake grpc debug_error_string\)",
     ):
         await client.set_power(component_id=83, power_w=100.0)
+
+
+@pytest.mark.parametrize(
+    "reactive_power_var",
+    [0, 0.0, 12, -75, 0.1, -0.0001, 134.0],
+)
+async def test_set_reactive_power_ok(
+    reactive_power_var: float, meter83: microgrid_pb2.Component
+) -> None:
+    """Test if charge is able to charge component."""
+    client = _TestClient()
+    client.mock_stub.ListComponents.return_value = microgrid_pb2.ComponentList(
+        components=[meter83]
+    )
+
+    await client.set_reactive_power(
+        component_id=83, reactive_power_var=reactive_power_var
+    )
+    client.mock_stub.SetPowerReactive.assert_called_once()
+    call_args = client.mock_stub.SetPowerReactive.call_args[0]
+    assert call_args[0] == microgrid_pb2.SetPowerReactiveParam(
+        component_id=83, power=reactive_power_var
+    )
+
+
+async def test_set_reactive_power_grpc_error() -> None:
+    """Test set_power() raises ApiClientError when the gRPC call fails."""
+    client = _TestClient()
+    client.mock_stub.SetPowerReactive.side_effect = grpc.aio.AioRpcError(
+        mock.MagicMock(name="mock_status"),
+        mock.MagicMock(name="mock_initial_metadata"),
+        mock.MagicMock(name="mock_trailing_metadata"),
+        "fake grpc details",
+        "fake grpc debug_error_string",
+    )
+    with pytest.raises(
+        ApiClientError,
+        match=r"Failed calling 'SetPowerReactive' on 'grpc://mock_host:1234': .* "
+        r"<status=<MagicMock name='mock_status\.name' id='.*'>>: fake grpc details "
+        r"\(fake grpc debug_error_string\)",
+    ):
+        await client.set_reactive_power(component_id=83, reactive_power_var=100.0)
 
 
 @pytest.mark.parametrize(
