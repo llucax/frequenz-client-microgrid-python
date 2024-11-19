@@ -5,6 +5,7 @@
 
 import dataclasses
 import logging
+from collections.abc import Mapping
 from functools import cached_property
 from typing import Any, Self
 
@@ -28,26 +29,67 @@ class Component:  # pylint: disable=too-many-instance-attributes
     microgrid_id: MicrogridId
     """The ID of the microgrid this component belongs to."""
 
-    name: str | None
+    category: ComponentCategory | int
+    """The category of this component.
+
+    Note:
+        This should not be used normally, you should test if a component
+        [`isinstance`][] of a concrete component class instead.
+
+        It is only provided for using with a newer version of the API where the client
+        doesn't know about a new category yet (i.e. for use with
+        [`UnrecognizedComponent`][frequenz.client.microgrid.component.UnrecognizedComponent])
+        and in case some low level code needs to know the category of a component.
+        """
+
+    status: ComponentStatus | int = ComponentStatus.ACTIVE
+    """The status of this component.
+
+    Note:
+        This should not be used normally, you should test if a component is active
+        by checking the [`active`][frequenz.client.microgrid.component.Component.active]
+        property instead.
+    """
+
+    name: str | None = None
     """The name of this component."""
 
-    category: ComponentCategory | int
-    """The category of this component."""
-
-    manufacturer: str | None
+    manufacturer: str | None = None
     """The manufacturer of this component."""
 
-    model_name: str | None
+    model_name: str | None = None
     """The model name of this component."""
 
-    status: ComponentStatus | int
-    """The status of this component."""
-
-    operational_lifetime: Lifetime
+    operational_lifetime: Lifetime = dataclasses.field(default_factory=Lifetime)
     """The operational lifetime of this component."""
 
-    rated_bounds: dict[Metric | int, Bounds]
+    rated_bounds: Mapping[Metric | int, Bounds] = dataclasses.field(
+        default_factory=dict,
+        # dict is not hashable, so we don't use this field to calculate the hash. This
+        # shouldn't be a problem since it is very unlikely that two components with all
+        # other attributes being equal would have different category specific metadata,
+        # so hash collisions should be still very unlikely.
+        # TODO: Test hashing components
+        hash=False,
+    )
     """List of rated bounds present for the component identified by Metric."""
+
+    category_specific_metadata: Mapping[str, Any] = dataclasses.field(
+        default_factory=dict,
+        # dict is not hashable, so we don't use this field to calculate the hash. This
+        # shouldn't be a problem since it is very unlikely that two components with all
+        # other attributes being equal would have different category specific metadata,
+        # so hash collisions should be still very unlikely.
+        hash=False,
+    )
+    """The category specific metadata of this component.
+
+    Note:
+        This should not be used normally, it is only useful when accessing a newer
+        version of the API where the client doesn't know about the new metadata fields
+        yet (i.e. for use with
+        [`UnrecognizedComponent`][frequenz.client.microgrid.component.UnrecognizedComponent]).
+    """
 
     # pylint: disable-next=unused-argument
     def __new__(cls, *args: Any, **kwargs: Any) -> Self:

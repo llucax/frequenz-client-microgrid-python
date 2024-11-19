@@ -50,8 +50,13 @@ class ComponentConnection:
     This is the component towards which the current flows.
     """
 
-    operational_lifetime: Lifetime
+    operational_lifetime: Lifetime = dataclasses.field(default_factory=Lifetime)
     """The operational lifetime of the connection."""
+
+    def __post_init__(self) -> None:
+        """Ensure that the source and destination components are different."""
+        if self.source == self.destination:
+            raise ValueError("Source and destination components must be different")
 
     @cached_property
     def active(self) -> bool:

@@ -11,6 +11,7 @@ from ._client import (
     DEFAULT_CHANNEL_OPTIONS,
     DEFAULT_GRPC_CALL_TIMEOUT,
     MicrogridApiClient,
+    Validity,
 )
 from ._delivery_area import DeliveryArea, EnergyMarketCodeType
 from ._exception import (
@@ -73,4 +74,5 @@ __all__ = [
     "ServiceUnavailable",
     "UnknownError",
     "UnrecognizedGrpcStatus",
+    "Validity",
 ]
