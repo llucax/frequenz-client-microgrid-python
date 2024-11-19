@@ -15,7 +15,12 @@ from ._battery import (
 )
 from ._category import ComponentCategory
 from ._chp import Chp
-from ._component import ComponentTypes
+from ._component import (
+    ComponentTypes,
+    ProblematicComponentTypes,
+    UnrecognizedComponentTypes,
+    UnspecifiedComponentTypes,
+)
 from ._connection import ComponentConnection
 from ._converter import Converter
 from ._crypto_miner import CryptoMiner
@@ -48,7 +53,6 @@ from ._precharger import Precharger
 from ._problematic import (
     MismatchedCategoryComponent,
     ProblematicComponent,
-    ProblematicComponentTypes,
     UnrecognizedComponent,
     UnspecifiedComponent,
 )
@@ -98,10 +102,12 @@ __all__ = [
     "SolarInverter",
     "UnrecognizedBattery",
     "UnrecognizedComponent",
+    "UnrecognizedComponentTypes",
     "UnrecognizedEvCharger",
     "UnrecognizedInverter",
     "UnspecifiedBattery",
     "UnspecifiedComponent",
+    "UnspecifiedComponentTypes",
     "UnspecifiedEvCharger",
     "UnspecifiedInverter",
     "VoltageTransformer",

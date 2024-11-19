@@ -33,10 +33,29 @@ class Inverter(Component):
     """An abstract inverter component."""
 
     category: Literal[ComponentCategory.INVERTER] = ComponentCategory.INVERTER
-    """The category of this component."""
+    """The category of this component.
+
+    Note:
+        This should not be used normally, you should test if a component
+        [`isinstance`][] of a concrete component class instead.
+
+        It is only provided for using with a newer version of the API where the client
+        doesn't know about a new category yet (i.e. for use with
+        [`UnrecognizedComponent`][frequenz.client.microgrid.component.UnrecognizedComponent])
+        and in case some low level code needs to know the category of a component.
+    """
 
     type: InverterType | int
-    """The type of this inverter."""
+    """The type of this inverter.
+
+    Note:
+        This should not be used normally, you should test if a inverter
+        [`isinstance`][] of a concrete inverter class instead.
+
+        It is only provided for using with a newer version of the API where the client
+        doesn't know about the new inverter type yet (i.e. for use with
+        [`UnrecognizedInverter`][frequenz.client.microgrid.component.UnrecognizedInverter]).
+    """
 
     # pylint: disable-next=unused-argument
     def __new__(cls, *args: Any, **kwargs: Any) -> Self:
@@ -51,7 +70,16 @@ class UnspecifiedInverter(Inverter):
     """An inverter of an unspecified type."""
 
     type: Literal[InverterType.UNSPECIFIED] = InverterType.UNSPECIFIED
-    """The type of this inverter."""
+    """The type of this inverter.
+
+    Note:
+        This should not be used normally, you should test if a inverter
+        [`isinstance`][] of a concrete inverter class instead.
+
+        It is only provided for using with a newer version of the API where the client
+        doesn't know about the new inverter type yet (i.e. for use with
+        [`UnrecognizedInverter`][frequenz.client.microgrid.component.UnrecognizedInverter]).
+    """
 
 
 @dataclasses.dataclass(frozen=True, kw_only=True)
@@ -59,7 +87,16 @@ class BatteryInverter(Inverter):
     """A battery inverter."""
 
     type: Literal[InverterType.BATTERY] = InverterType.BATTERY
-    """The type of this inverter."""
+    """The type of this inverter.
+
+    Note:
+        This should not be used normally, you should test if a inverter
+        [`isinstance`][] of a concrete inverter class instead.
+
+        It is only provided for using with a newer version of the API where the client
+        doesn't know about the new inverter type yet (i.e. for use with
+        [`UnrecognizedInverter`][frequenz.client.microgrid.component.UnrecognizedInverter]).
+    """
 
 
 @dataclasses.dataclass(frozen=True, kw_only=True)
@@ -67,7 +104,16 @@ class SolarInverter(Inverter):
     """A solar inverter."""
 
     type: Literal[InverterType.SOLAR] = InverterType.SOLAR
-    """The type of this inverter."""
+    """The type of this inverter.
+
+    Note:
+        This should not be used normally, you should test if a inverter
+        [`isinstance`][] of a concrete inverter class instead.
+
+        It is only provided for using with a newer version of the API where the client
+        doesn't know about the new inverter type yet (i.e. for use with
+        [`UnrecognizedInverter`][frequenz.client.microgrid.component.UnrecognizedInverter]).
+    """
 
 
 @dataclasses.dataclass(frozen=True, kw_only=True)
@@ -75,7 +121,16 @@ class HybridInverter(Inverter):
     """A hybrid inverter."""
 
     type: Literal[InverterType.HYBRID] = InverterType.HYBRID
-    """The type of this inverter."""
+    """The type of this inverter.
+
+    Note:
+        This should not be used normally, you should test if a inverter
+        [`isinstance`][] of a concrete inverter class instead.
+
+        It is only provided for using with a newer version of the API where the client
+        doesn't know about the new inverter type yet (i.e. for use with
+        [`UnrecognizedInverter`][frequenz.client.microgrid.component.UnrecognizedInverter]).
+    """
 
 
 @dataclasses.dataclass(frozen=True, kw_only=True)
@@ -83,7 +138,7 @@ class UnrecognizedInverter(Inverter):
     """An inverter component."""
 
     type: int
-    """The type of this inverter."""
+    """The unrecognized type of this inverter."""
 
 
 InverterTypes: TypeAlias = (

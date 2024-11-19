@@ -5,13 +5,14 @@
 
 from __future__ import annotations
 
+import enum
 import math
 from collections.abc import Iterable
 from dataclasses import replace
 from datetime import datetime, timedelta
 from typing import assert_never
 
-from frequenz.api.common.v1.metrics import metric_sample_pb2
+from frequenz.api.common.v1.metrics import bounds_pb2, metric_sample_pb2
 from frequenz.api.common.v1.microgrid.components import components_pb2
 from frequenz.api.microgrid.v1 import microgrid_pb2, microgrid_pb2_grpc
 from frequenz.channels import Receiver
@@ -30,6 +31,7 @@ from .component._connection import ComponentConnection
 from .component._connection_proto import component_connection_from_proto
 from .component._data_samples import ComponentDataSamples
 from .component._data_samples_proto import component_data_sample_from_proto
+from .metrics._bounds import Bounds
 from .metrics._metric import Metric
 
 DEFAULT_GRPC_CALL_TIMEOUT = 60.0
@@ -285,7 +287,7 @@ class MicrogridApiClient(client.BaseApiClient[microgrid_pb2_grpc.MicrogridStub])
 
         Returns:
             The timestamp until which the given power command will stay in effect, or
-                `None` if it was not provided.
+                `None` if it was not provided by the server.
 
         Raises:
             ApiClientError: If the are any errors communicating with the Microgrid API,
@@ -368,7 +370,7 @@ class MicrogridApiClient(client.BaseApiClient[microgrid_pb2_grpc.MicrogridStub])
 
         Returns:
             The timestamp until which the given power command will stay in effect, or
-                `None` if it was not provided.
+                `None` if it was not provided by the server.
 
         Raises:
             ApiClientError: If the are any errors communicating with the Microgrid API,
@@ -395,6 +397,103 @@ class MicrogridApiClient(client.BaseApiClient[microgrid_pb2_grpc.MicrogridStub])
 
         if response.HasField("valid_until"):
             return conversion.to_datetime(response.valid_until)
+
+        return None
+
+    async def add_component_bounds(  # noqa: DOC502 (Raises ApiClientError indirectly)
+        self,
+        component: ComponentId | Component,
+        target: Metric | int,
+        bounds: Iterable[Bounds],
+        *,
+        validity: Validity | None = None,
+    ) -> datetime | None:
+        """Add inclusion bounds for a given metric of a given component.
+
+        The bounds are used to define the acceptable range of values for a metric
+        of a component. The added bounds are kept only temporarily, and removed
+        automatically after some expiry time.
+
+        Inclusion bounds give the range that the system will try to keep the
+        metric within. If the metric goes outside of these bounds, the system will
+        try to bring it back within the bounds.
+        If the bounds for a metric are `[[lower_1, upper_1], [lower_2, upper_2]]`,
+        then this metric's `value` needs to comply with the constraints `lower_1 <=
+        value <= upper_1` OR `lower_2 <= value <= upper_2`.
+
+        If multiple inclusion bounds have been provided for a metric, then the
+        overlapping bounds are merged into a single bound, and non-overlapping
+        bounds are kept separate.
+
+        Example:
+            If the bounds are [[0, 10], [5, 15], [20, 30]], then the resulting bounds
+            will be [[0, 15], [20, 30]].
+
+            The following diagram illustrates how bounds are applied:
+
+            ```
+              lower_1  upper_1
+            <----|========|--------|========|-------->
+                                lower_2  upper_2
+            ```
+
+            The bounds in this example are `[[lower_1, upper_1], [lower_2, upper_2]]`.
+
+            ```
+            ---- values here are considered out of range.
+            ==== values here are considered within range.
+            ```
+
+        Note:
+            For power metrics, regardless of the bounds, 0W is always allowed.
+
+        Args:
+            component: The component to add bounds to.
+            target: The target metric whose bounds have to be added.
+            bounds: The bounds to add to the target metric. Overlapping pairs of bounds
+                are merged into a single pair of bounds, and non-overlapping ones are
+                kept separated.
+            validity: The duration for which the given bounds will stay in effect.
+                If `None`, then the bounds will be removed after some default time
+                decided by the server, typically 5 seconds.
+
+                The duration for which the bounds are valid. If not provided, the
+                bounds are considered to be valid indefinitely.
+
+        Returns:
+            The timestamp until which the given bounds will stay in effect, or `None` if
+                if it was not provided by the server.
+
+        Raises:
+            ApiClientError: If the are any errors communicating with the Microgrid API,
+                most likely a subclass of
+                [GrpcError][frequenz.client.microgrid.GrpcError].
+        """
+        extra_args = {}
+        if validity is not None:
+            extra_args["validity_duration"] = validity.value
+        response = await client.call_stub_method(
+            self,
+            lambda: self.stub.AddComponentBounds(
+                microgrid_pb2.AddComponentBoundsRequest(
+                    component_id=_get_component_id(component),
+                    target_metric=_get_metric_value(target),
+                    bounds=(
+                        bounds_pb2.Bounds(
+                            lower=bounds.lower,
+                            upper=bounds.upper,
+                        )
+                        for bounds in bounds
+                    ),
+                    **extra_args,
+                ),
+                timeout=int(DEFAULT_GRPC_CALL_TIMEOUT),
+            ),
+            method_name="AddComponentBounds",
+        )
+
+        if response.HasField("ts"):
+            return conversion.to_datetime(response.ts)
 
         return None
 
@@ -459,6 +558,30 @@ class MicrogridApiClient(client.BaseApiClient[microgrid_pb2_grpc.MicrogridStub])
             )
             self._component_data_samples_broadcasters[key] = broadcaster
         return broadcaster.new_receiver(maxsize=buffer_size)
+
+
+class Validity(enum.Enum):
+    """The duration for which a given list of bounds will stay in effect."""
+
+    FIVE_SECONDS = (
+        microgrid_pb2.ComponentBoundsValidityDuration.COMPONENT_BOUNDS_VALIDITY_DURATION_5_SECONDS
+    )
+    """The bounds will stay in effect for 5 seconds."""
+
+    ONE_MINUTE = (
+        microgrid_pb2.ComponentBoundsValidityDuration.COMPONENT_BOUNDS_VALIDITY_DURATION_1_MINUTE
+    )
+    """The bounds will stay in effect for 1 minute."""
+
+    FIVE_MINUTES = (
+        microgrid_pb2.ComponentBoundsValidityDuration.COMPONENT_BOUNDS_VALIDITY_DURATION_5_MINUTES
+    )
+    """The bounds will stay in effect for 5 minutes."""
+
+    FIFTEEN_MINUTES = (
+        microgrid_pb2.ComponentBoundsValidityDuration.COMPONENT_BOUNDS_VALIDITY_DURATION_15_MINUTES
+    )
+    """The bounds will stay in effect for 15 minutes."""
 
 
 def _get_component_id(component: ComponentId | Component) -> int:

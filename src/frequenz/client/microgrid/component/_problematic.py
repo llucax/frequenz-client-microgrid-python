@@ -14,9 +14,6 @@ from ._category import ComponentCategory
 class ProblematicComponent(Component):
     """An abstract component with a problem."""
 
-    category_specific_metadata: dict[str, Any] = dataclasses.field(default_factory=dict)
-    """The category specific metadata of this component."""
-
     # pylint: disable-next=unused-argument
     def __new__(cls, *args: Any, **kwargs: Any) -> Self:
         """Prevent instantiation of this class."""
@@ -51,9 +48,3 @@ class MismatchedCategoryComponent(ProblematicComponent):
 
     category: ComponentCategory | int
     """The category of this component."""
-
-
-ProblematicComponentTypes: TypeAlias = (
-    MismatchedCategoryComponent | UnrecognizedComponent | UnspecifiedComponent
-)
-"""All possible component types that has a problem."""
