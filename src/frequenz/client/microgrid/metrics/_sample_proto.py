@@ -4,6 +4,7 @@
 """Loading of MetricSample and AggregatedMetricValue objects from protobuf messages."""
 
 from collections.abc import Sequence
+from typing import assert_never
 
 from frequenz.api.common.v1.metrics import bounds_pb2, metric_sample_pb2
 from frequenz.client.base import conversion
@@ -34,6 +35,28 @@ def aggregated_metric_sample_from_proto(
     )
 
 
+def metric_value_variant_from_proto(
+    message: metric_sample_pb2.MetricValueVariant,
+) -> float | AggregatedMetricValue | None:
+    """Extract the value from a MetricValueVariant protobuf message.
+
+    Args:
+        message: The protobuf message to extract the value from.
+
+    Returns:
+        The extracted value, which can be a float, an AggregatedMetricValue, or None.
+    """
+    match message.WhichOneof("metric_value_variant"):
+        case "simple_metric":
+            return message.simple_metric.value
+        case "aggregated_metric":
+            return aggregated_metric_sample_from_proto(message.aggregated_metric)
+        case None:
+            return None
+        case unexpected:
+            assert_never(unexpected)
+
+
 def metric_sample_from_proto_with_issues(
     message: metric_sample_pb2.MetricSample,
     *,
@@ -50,22 +73,11 @@ def metric_sample_from_proto_with_issues(
     Returns:
         The resulting `MetricSample` object.
     """
-    value: float | AggregatedMetricValue | None = None
-    if message.HasField("value"):
-        match message.value.WhichOneof("metric_value_variant"):
-            case "simple_metric":
-                value = message.value.simple_metric.value
-            case "aggregated_metric":
-                value = aggregated_metric_sample_from_proto(
-                    message.value.aggregated_metric
-                )
-
     metric = enum_from_proto(message.metric, Metric)
-
     return MetricSample(
         sampled_at=conversion.to_datetime(message.sampled_at),
         metric=metric,
-        value=value,
+        value=metric_value_variant_from_proto(message.value),
         bounds=_metric_bounds_from_proto(
             metric,
             message.bounds,
