@@ -8,6 +8,7 @@ from __future__ import annotations
 import asyncio
 import enum
 import itertools
+import logging
 import math
 from collections.abc import Iterable
 from dataclasses import replace
@@ -40,6 +41,8 @@ from .component._data_samples_proto import component_data_samples_from_proto
 from .component._types import ComponentTypes
 from .metrics._bounds import Bounds
 from .metrics._metric import Metric
+
+_logger = logging.getLogger(__name__)
 
 DEFAULT_GRPC_CALL_TIMEOUT = 60.0
 """The default timeout for gRPC calls made by this client (in seconds)."""
@@ -85,6 +88,7 @@ class MicrogridApiClient(client.BaseApiClient[microgrid_pb2_grpc.MicrogridStub])
                 to the streaming method is lost. By default a linear backoff strategy
                 is used.
         """
+        _logger.debug("Creating client for %s", server_url)
         super().__init__(
             server_url,
             microgrid_pb2_grpc.MicrogridStub,
@@ -123,6 +127,7 @@ class MicrogridApiClient(client.BaseApiClient[microgrid_pb2_grpc.MicrogridStub])
         exc_tb: Any | None,
     ) -> bool | None:
         """Close the gRPC channel and stop all broadcasters."""
+        _logger.debug("Closing client for %s", self.server_url)
         exceptions = list(
             exc
             for exc in await asyncio.gather(
@@ -168,11 +173,14 @@ class MicrogridApiClient(client.BaseApiClient[microgrid_pb2_grpc.MicrogridStub])
                 most likely a subclass of
                 [GrpcError][frequenz.client.microgrid.GrpcError].
         """
+        _logger.debug("Called get_microgrid_info() on %s", self.server_url)
+        _logger.debug("Calling gRPC method GetMicrogrid()")
         response = await client.call_stub_method(
             self,
             lambda: self.stub.GetMicrogrid(Empty(), timeout=DEFAULT_GRPC_CALL_TIMEOUT),
-            method_name="GetMicrogridMetadata",
+            method_name="GetMicrogrid",
         )
+        _logger.debug("gRPC method GetMicrogrid() returned:\n%s", response)
 
         return microgrid_info_from_proto(response.microgrid)
 
@@ -217,19 +225,22 @@ class MicrogridApiClient(client.BaseApiClient[microgrid_pb2_grpc.MicrogridStub])
                 most likely a subclass of
                 [GrpcError][frequenz.client.microgrid.GrpcError].
         """
+        _logger.debug("Called list_components() on %s", self.server_url)
+
+        request = microgrid_pb2.ListElectricalComponentsRequest(
+            electrical_component_ids=map(_get_component_id, components),
+            electrical_component_categories=map(_get_category_value, categories),
+        )
+        _logger.debug("Calling gRPC method ListElectricalComponents with:\n%s", request)
+
         response = await client.call_stub_method(
             self,
             lambda: self.stub.ListElectricalComponents(
-                microgrid_pb2.ListElectricalComponentsRequest(
-                    electrical_component_ids=map(_get_component_id, components),
-                    electrical_component_categories=map(
-                        _get_category_value, categories
-                    ),
-                ),
-                timeout=DEFAULT_GRPC_CALL_TIMEOUT,
+                request, timeout=DEFAULT_GRPC_CALL_TIMEOUT
             ),
-            method_name="ListComponents",
+            method_name="ListElectricalComponents",
         )
+        _logger.debug("gRPC method ListElectricalComponents returned:\n%s", response)
 
         return map(component_from_proto, response.electrical_components)
 
@@ -273,18 +284,26 @@ class MicrogridApiClient(client.BaseApiClient[microgrid_pb2_grpc.MicrogridStub])
                 most likely a subclass of
                 [GrpcError][frequenz.client.microgrid.GrpcError].
         """
+        _logger.debug("Called list_connections() on %s", self.server_url)
+
+        request = microgrid_pb2.ListElectricalComponentConnectionsRequest(
+            source_electrical_component_ids=map(_get_component_id, sources),
+            destination_electrical_component_ids=map(_get_component_id, destinations),
+        )
+        _logger.debug(
+            "Calling gRPC method ListElectricalComponentConnections with:\n%s", request
+        )
+
         response = await client.call_stub_method(
             self,
             lambda: self.stub.ListElectricalComponentConnections(
-                microgrid_pb2.ListElectricalComponentConnectionsRequest(
-                    source_electrical_component_ids=map(_get_component_id, sources),
-                    destination_electrical_component_ids=map(
-                        _get_component_id, destinations
-                    ),
-                ),
-                timeout=DEFAULT_GRPC_CALL_TIMEOUT,
+                request, timeout=DEFAULT_GRPC_CALL_TIMEOUT
             ),
-            method_name="ListConnections",
+            method_name="ListElectricalComponentsConnections",
+        )
+        _logger.debug(
+            "gRPC method ListElectricalComponentConnections returned:\n%s",
+            response,
         )
 
         return (
@@ -350,6 +369,7 @@ class MicrogridApiClient(client.BaseApiClient[microgrid_pb2_grpc.MicrogridStub])
                 most likely a subclass of
                 [GrpcError][frequenz.client.microgrid.GrpcError].
         """
+        _logger.debug("Called set_component_power_active() on %s", self.server_url)
         lifetime_seconds = _delta_to_seconds(request_lifetime)
 
         if validate_arguments:
@@ -359,17 +379,19 @@ class MicrogridApiClient(client.BaseApiClient[microgrid_pb2_grpc.MicrogridStub])
         if not self.is_connected:
             raise ClientNotConnected(server_url=self.server_url, operation=method_name)
 
+        request = microgrid_pb2.SetElectricalComponentPowerRequest(
+            electrical_component_id=_get_component_id(component),
+            power_type=microgrid_pb2.POWER_TYPE_ACTIVE,
+            power=power,
+            request_lifetime=lifetime_seconds,
+        )
+        _logger.debug("Calling gRPC method %s with:\n%s", method_name, request)
+
         try:
             response = await anext(
                 aiter(
                     self.stub.SetElectricalComponentPower(
-                        microgrid_pb2.SetElectricalComponentPowerRequest(
-                            electrical_component_id=_get_component_id(component),
-                            power_type=microgrid_pb2.POWER_TYPE_ACTIVE,
-                            power=power,
-                            request_lifetime=lifetime_seconds,
-                        ),
-                        timeout=DEFAULT_GRPC_CALL_TIMEOUT,
+                        request, timeout=DEFAULT_GRPC_CALL_TIMEOUT
                     )
                 )
             )
@@ -379,6 +401,8 @@ class MicrogridApiClient(client.BaseApiClient[microgrid_pb2_grpc.MicrogridStub])
                 operation=method_name,
                 grpc_error=grpc_error,
             ) from grpc_error
+
+        _logger.debug("gRPC method %s returned:\n%s", method_name, response)
 
         if response.HasField("valid_until_time"):
             return conversion.to_datetime(response.valid_until_time)
@@ -440,6 +464,7 @@ class MicrogridApiClient(client.BaseApiClient[microgrid_pb2_grpc.MicrogridStub])
                 most likely a subclass of
                 [GrpcError][frequenz.client.microgrid.GrpcError].
         """
+        _logger.debug("Called set_component_power_reactive() on %s", self.server_url)
         lifetime_seconds = _delta_to_seconds(request_lifetime)
 
         if validate_arguments:
@@ -449,16 +474,19 @@ class MicrogridApiClient(client.BaseApiClient[microgrid_pb2_grpc.MicrogridStub])
         if not self.is_connected:
             raise ClientNotConnected(server_url=self.server_url, operation=method_name)
 
+        request = microgrid_pb2.SetElectricalComponentPowerRequest(
+            electrical_component_id=_get_component_id(component),
+            power_type=microgrid_pb2.POWER_TYPE_REACTIVE,
+            power=power,
+            request_lifetime=lifetime_seconds,
+        )
+        _logger.debug("Calling gRPC method %s with:\n%s", method_name, request)
+
         try:
             response = await anext(
                 aiter(
                     self.stub.SetElectricalComponentPower(
-                        microgrid_pb2.SetElectricalComponentPowerRequest(
-                            electrical_component_id=_get_component_id(component),
-                            power_type=microgrid_pb2.POWER_TYPE_REACTIVE,
-                            power=power,
-                            request_lifetime=lifetime_seconds,
-                        ),
+                        request,
                         timeout=DEFAULT_GRPC_CALL_TIMEOUT,
                     )
                 )
@@ -469,6 +497,8 @@ class MicrogridApiClient(client.BaseApiClient[microgrid_pb2_grpc.MicrogridStub])
                 operation=method_name,
                 grpc_error=grpc_error,
             ) from grpc_error
+
+        _logger.debug("gRPC method %s returned:\n%s", method_name, response)
 
         if response.HasField("valid_until_time"):
             return conversion.to_datetime(response.valid_until_time)
@@ -544,24 +574,33 @@ class MicrogridApiClient(client.BaseApiClient[microgrid_pb2_grpc.MicrogridStub])
                 most likely a subclass of
                 [GrpcError][frequenz.client.microgrid.GrpcError].
         """
+        _logger.debug("Called add_component_bounds() on %s", self.server_url)
+
+        request = microgrid_pb2.AugmentElectricalComponentBoundsRequest(
+            electrical_component_id=_get_component_id(component),
+            target_metric=_get_metric_value(target),
+            bounds=(
+                bounds_pb2.Bounds(
+                    lower=bound.lower,
+                    upper=bound.upper,
+                )
+                for bound in bounds
+            ),
+            request_lifetime=validity.value if validity else None,
+        )
+        _logger.debug(
+            "Calling gRPC method AugmentElectricalComponentBounds with:\n%s", request
+        )
+
         response = await client.call_stub_method(
             self,
             lambda: self.stub.AugmentElectricalComponentBounds(
-                microgrid_pb2.AugmentElectricalComponentBoundsRequest(
-                    electrical_component_id=_get_component_id(component),
-                    target_metric=_get_metric_value(target),
-                    bounds=(
-                        bounds_pb2.Bounds(
-                            lower=bound.lower,
-                            upper=bound.upper,
-                        )
-                        for bound in bounds
-                    ),
-                    request_lifetime=validity.value if validity else None,
-                ),
-                timeout=DEFAULT_GRPC_CALL_TIMEOUT,
+                request, timeout=DEFAULT_GRPC_CALL_TIMEOUT
             ),
-            method_name="AddComponentBounds",
+            method_name="AugmentElectricalComponentBounds",
+        )
+        _logger.debug(
+            "gRPC method AugmentElectricalComponentBounds returned:\n%s", response
         )
 
         if response.HasField("valid_until_time"):
@@ -604,6 +643,9 @@ class MicrogridApiClient(client.BaseApiClient[microgrid_pb2_grpc.MicrogridStub])
         Returns:
             The data stream from the component.
         """
+        _logger.debug(
+            "Called receive_component_data_samples_stream() on %s", self.server_url
+        )
         component_id = _get_component_id(component)
         metrics_set = frozenset([_get_metric_value(m) for m in metrics])
         key = f"{component_id}-{hash(metrics_set)}"
