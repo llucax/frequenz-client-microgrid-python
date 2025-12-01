@@ -91,7 +91,7 @@ class MetricSample:
     value: float | AggregatedMetricValue | None
     """The value of the sampled metric."""
 
-    bounds: list[Bounds]
+    bounds: Sequence[Bounds]
     """The bounds that apply to the metric sample.
 
     These bounds adapt in real-time to reflect the operating conditions at the time of
