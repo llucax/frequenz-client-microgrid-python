@@ -65,6 +65,10 @@ class AggregatedMetricValue:
         extra_str = f"<{' '.join(extra)}>" if extra else ""
         return f"avg:{self.avg}{extra_str}"
 
+    def __hash__(self) -> int:
+        """Disable hashing for this class."""
+        raise TypeError("unhashable type: 'AggregatedMetricValue'")
+
 
 @dataclass(frozen=True, kw_only=True)
 class MetricSample:
@@ -172,3 +176,7 @@ class MetricSample:
                 return None
             case unexpected:
                 assert_never(unexpected)
+
+    def __hash__(self) -> int:
+        """Disable hashing for this class."""
+        raise TypeError("unhashable type: 'MetricSample'")
