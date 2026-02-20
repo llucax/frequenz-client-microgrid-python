@@ -41,10 +41,10 @@ jobs:
           app-id: ${{ secrets.FREQUENZ_AUTO_DEPENDABOT_APP_ID }}
           private-key: ${{ secrets.FREQUENZ_AUTO_DEPENDABOT_APP_PRIVATE_KEY }}
       - name: Migrate
-        uses: frequenz-floss/gh-workflow-dependabot-migrate@8a8a619ef56b54afcd6d3a4a021be4e544ec541b
+        uses: frequenz-floss/gh-workflow-dependabot-migrate@2f513abc419a11bc190c66b9c35d163c4c4b067c
         with:
           script-url-template: >-
-            https://raw.githubusercontent.com/frequenz-floss/frequenz-repo-config-python/v1.x.x/cookiecutter/migrate.py
+            https://raw.githubusercontent.com/frequenz-floss/frequenz-repo-config-python/v0.x.x/cookiecutter/migrate.py
           #script-url-template: >-
           #  https://raw.githubusercontent.com/frequenz-floss/frequenz-repo-config-python/{version}/cookiecutter/migrate.py
           label-prefix: "tool:repo-config"
