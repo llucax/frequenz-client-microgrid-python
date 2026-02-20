@@ -88,3 +88,36 @@ def component_data_samples_from_proto_with_issues(
         ),
         states=list(map(component_state_sample_from_proto, message.state_snapshots)),
     )
+
+
+def component_data_samples2_from_proto_with_issues(
+    message: electrical_components_pb2.ElectricalComponentTelemetry,
+    *,
+    major_issues: list[str],
+    minor_issues: list[str],
+) -> ComponentDataSamples:
+    """Convert a protobuf component data message to a component data object collecting issues.
+
+    Args:
+        message: The protobuf message to convert.
+        major_issues: A list to append major issues to.
+        minor_issues: A list to append minor issues to.
+
+    Returns:
+        The resulting `ComponentDataSamples` object.
+    """
+    return ComponentDataSamples(
+        component_id=ComponentId(message.electrical_component_id),
+        metric_samples={
+            m.metric: m
+            for m in map(
+                partial(
+                    metric_sample_from_proto_with_issues,
+                    major_issues=major_issues,
+                    minor_issues=minor_issues,
+                ),
+                message.metric_samples,
+            )
+        },
+        states=list(map(component_state_sample_from_proto, message.state_snapshots)),
+    )
