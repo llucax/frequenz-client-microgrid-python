@@ -41,13 +41,17 @@ jobs:
           app-id: ${{ secrets.FREQUENZ_AUTO_DEPENDABOT_APP_ID }}
           private-key: ${{ secrets.FREQUENZ_AUTO_DEPENDABOT_APP_PRIVATE_KEY }}
       - name: Migrate
-        uses: frequenz-floss/gh-workflow-dependabot-migrate@8a8a619ef56b54afcd6d3a4a021be4e544ec541b
+        uses: frequenz-floss/gh-action-dependabot-migrate@init
         with:
+            #https://raw.githubusercontent.com/llucax/frequenz-client-microgrid-python/v0.x.x/migrate-failure.py
+            #https://raw.githubusercontent.com/frequenz-floss/frequenz-repo-config-python/v0.x.x/cookiecutter/migrate.py
+            #https://raw.githubusercontent.com/frequenz-floss/frequenz-repo-config-python/{version}/cookiecutter/migrate.py
           script-url-template: >-
-            https://raw.githubusercontent.com/frequenz-floss/frequenz-repo-config-python/v1.x.x/cookiecutter/migrate.py
-          #script-url-template: >-
-          #  https://raw.githubusercontent.com/frequenz-floss/frequenz-repo-config-python/{version}/cookiecutter/migrate.py
-          label-prefix: "tool:repo-config"
-          auto-merge-on-changes: "true"
+            https://raw.githubusercontent.com/llucax/frequenz-client-microgrid-python/v0.x.x/migrate-failure.py
           token: ${{ steps.create-app-token.outputs.token }}
-          migration-token: ${{ secrets.GITHUB_TOKEN }}
+          migration-token: ${{ secrets.MIGRATION_TOKEN }}
+          auto-merge-on-changes: "true"
+          auto-merged-label: "tool:auto-merged"
+          migrated-label: "tool:repo-config:migration:executed"
+          intervention-pending-label: "tool:repo-config:migration:intervention-pending"
+          intervention-done-label: "tool:repo-config:migration:intervention-done"
