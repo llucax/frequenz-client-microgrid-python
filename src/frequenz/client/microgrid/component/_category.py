@@ -57,12 +57,17 @@ class ComponentCategory(enum.Enum):
     CHP = electrical_components_pb2.ELECTRICAL_COMPONENT_CATEGORY_CHP
     """A heat and power combustion plant (CHP stands for combined heat and power)."""
 
-    RELAY = electrical_components_pb2.ELECTRICAL_COMPONENT_CATEGORY_BREAKER
-    """A relay.
+    BREAKER = electrical_components_pb2.ELECTRICAL_COMPONENT_CATEGORY_BREAKER
+    """A circuit breaker."""
 
-    Relays generally have two states: open (connected) and closed (disconnected).
-    They are generally placed in front of a component, e.g., an inverter, to
-    control whether the component is connected to the grid or not.
+    RELAY = enum.deprecated_member(
+        electrical_components_pb2.ELECTRICAL_COMPONENT_CATEGORY_BREAKER,
+        "RELAY is deprecated, use BREAKER instead",
+    )
+    """A circuit breaker.
+
+    Deprecated: Deprecated in v0.18.4
+        Use [`BREAKER`][frequenz.client.microgrid.component.ComponentCategory.BREAKER] instead.
     """
 
     PRECHARGER = electrical_components_pb2.ELECTRICAL_COMPONENT_CATEGORY_PRECHARGER
