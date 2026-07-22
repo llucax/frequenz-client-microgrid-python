@@ -4,6 +4,7 @@
 """Loading of Component objects from protobuf messages."""
 
 import logging
+import warnings
 from collections.abc import Sequence
 from typing import Any, NamedTuple, assert_never
 
@@ -11,7 +12,7 @@ from frequenz.api.common.v1alpha8.microgrid.electrical_components import (
     electrical_components_pb2,
 )
 from frequenz.client.common.microgrid import MicrogridId
-from frequenz.client.common.microgrid.components import ComponentId
+from frequenz.client.common.microgrid.electrical_components import ElectricalComponentId
 from google.protobuf.json_format import MessageToDict
 
 from .._lifetime import Lifetime
@@ -108,7 +109,7 @@ def component_from_proto(
 class ComponentBaseData(NamedTuple):
     """Base data for a component, extracted from a protobuf message."""
 
-    component_id: ComponentId
+    component_id: ElectricalComponentId
     microgrid_id: MicrogridId
     name: str | None
     manufacturer: str | None
@@ -136,7 +137,7 @@ def component_base_from_proto_with_issues(
     Returns:
         A `ComponentBaseData` named tuple containing the extracted data.
     """
-    component_id = ComponentId(message.id)
+    component_id = ElectricalComponentId(message.id)
     microgrid_id = MicrogridId(message.microgrid_id)
 
     name = message.name or None
@@ -356,7 +357,7 @@ def component_from_proto_with_issues(
                     )
                 case unexpected_ev_charger_type:
                     assert_never(unexpected_ev_charger_type)
-        case ComponentCategory.GRID_CONNECTION_POINT | ComponentCategory.GRID:
+        case ComponentCategory.GRID_CONNECTION_POINT:
             rated_fuse_current = (
                 message.category_specific_info.grid_connection_point.rated_fuse_current
             )
@@ -438,7 +439,35 @@ def component_from_proto_with_issues(
                 secondary_voltage=message.category_specific_info.power_transformer.secondary,
             )
         case unexpected_category:
-            assert_never(unexpected_category)
+            # Grid is deprecated in v0.3.8, and removed in v0.4.0
+            if (
+                hasattr(ComponentCategory, "GRID")
+                and getattr(ComponentCategory, "GRID") == unexpected_category
+            ):
+                warnings.warn(
+                    "Component category GRID is deprecated and should not be used. "
+                    "Please use GRID_CONNECTION_POINT instead.",
+                    DeprecationWarning,
+                    stacklevel=2,
+                )
+                rated_fuse_current = (
+                    message.category_specific_info.grid_connection_point.rated_fuse_current
+                )
+                # No need to check for negatives because the protobuf type is uint32.
+                return GridConnectionPoint(
+                    id=base_data.component_id,
+                    microgrid_id=base_data.microgrid_id,
+                    name=base_data.name,
+                    manufacturer=base_data.manufacturer,
+                    model_name=base_data.model_name,
+                    operational_lifetime=base_data.lifetime,
+                    rated_bounds=base_data.rated_bounds,
+                    rated_fuse_current=rated_fuse_current,
+                )
+            assert False, f"Unexpected component category {unexpected_category}"
+            # We can't use assert_never until the deprecated GRID category is
+            # removed from the enum.
+            # assert_never(unexpected_category)
 
 
 def _trivial_category_to_class(

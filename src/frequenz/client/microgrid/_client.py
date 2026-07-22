@@ -22,7 +22,7 @@ from frequenz.api.microgrid.v1alpha18 import microgrid_pb2, microgrid_pb2_grpc
 from frequenz.channels import Receiver
 from frequenz.client.base import channel, client, conversion, retry, streaming
 from frequenz.client.base.exception import ApiClientError
-from frequenz.client.common.microgrid.components import ComponentId
+from frequenz.client.common.microgrid.electrical_components import ElectricalComponentId
 from frequenz.client.common.microgrid.sensors import SensorId
 from google.protobuf.empty_pb2 import Empty
 from grpc.aio import AioRpcError
@@ -190,7 +190,7 @@ class MicrogridApiClient(client.BaseApiClient[microgrid_pb2_grpc.MicrogridStub])
     async def list_components(  # noqa: DOC502 (raises ApiClientError indirectly)
         self,
         *,
-        components: Iterable[ComponentId | Component] = (),
+        components: Iterable[ElectricalComponentId | Component] = (),
         categories: Iterable[ComponentCategory | int] = (),
     ) -> Iterable[ComponentTypes]:
         """Fetch all the components present in the local microgrid.
@@ -247,8 +247,8 @@ class MicrogridApiClient(client.BaseApiClient[microgrid_pb2_grpc.MicrogridStub])
     async def list_connections(  # noqa: DOC502 (raises ApiClientError indirectly)
         self,
         *,
-        sources: Iterable[ComponentId | Component] = (),
-        destinations: Iterable[ComponentId | Component] = (),
+        sources: Iterable[ElectricalComponentId | Component] = (),
+        destinations: Iterable[ElectricalComponentId | Component] = (),
     ) -> Iterable[ComponentConnection]:
         """Fetch all the connections present in the local microgrid.
 
@@ -349,7 +349,7 @@ class MicrogridApiClient(client.BaseApiClient[microgrid_pb2_grpc.MicrogridStub])
     #       returning just the first one
     async def set_component_power_active(  # noqa: DOC503
         self,
-        component: ComponentId | Component,
+        component: ElectricalComponentId | Component,
         power: float,
         *,
         request_lifetime: timedelta | None = None,
@@ -433,7 +433,7 @@ class MicrogridApiClient(client.BaseApiClient[microgrid_pb2_grpc.MicrogridStub])
 
     async def set_component_power_reactive(  # noqa: DOC503
         self,
-        component: ComponentId | Component,
+        component: ElectricalComponentId | Component,
         power: float,
         *,
         request_lifetime: timedelta | None = None,
@@ -523,7 +523,7 @@ class MicrogridApiClient(client.BaseApiClient[microgrid_pb2_grpc.MicrogridStub])
 
     async def add_component_bounds(  # noqa: DOC502 (Raises ApiClientError indirectly)
         self,
-        component: ComponentId | Component,
+        component: ElectricalComponentId | Component,
         target: Metric | int,
         bounds: Iterable[Bounds],
         *,
@@ -618,7 +618,7 @@ class MicrogridApiClient(client.BaseApiClient[microgrid_pb2_grpc.MicrogridStub])
     # noqa: DOC502 (Raises ApiClientError indirectly)
     def receive_component_data_samples_stream(
         self,
-        component: ComponentId | Component,
+        component: ElectricalComponentId | Component,
         metrics: Iterable[Metric | int],
         *,
         buffer_size: int = 50,
@@ -760,10 +760,10 @@ class Validity(enum.Enum):
     """The bounds will stay in effect for 15 minutes."""
 
 
-def _get_component_id(component: ComponentId | Component) -> int:
+def _get_component_id(component: ElectricalComponentId | Component) -> int:
     """Get the component ID from a component or component ID."""
     match component:
-        case ComponentId():
+        case ElectricalComponentId():
             return int(component)
         case Component():
             return int(component.id)

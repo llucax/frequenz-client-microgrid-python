@@ -9,7 +9,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 from frequenz.client.common.microgrid import MicrogridId
-from frequenz.client.common.microgrid.components import ComponentId
+from frequenz.client.common.microgrid.electrical_components import ElectricalComponentId
 
 from frequenz.client.microgrid import Lifetime
 from frequenz.client.microgrid.component._category import ComponentCategory
@@ -28,7 +28,7 @@ def test_base_creation_fails() -> None:
     """Test that Component base class cannot be instantiated directly."""
     with pytest.raises(TypeError, match="Cannot instantiate Component directly"):
         _ = Component(
-            id=ComponentId(1),
+            id=ElectricalComponentId(1),
             microgrid_id=MicrogridId(1),
             category=ComponentCategory.UNSPECIFIED,
         )
@@ -37,7 +37,7 @@ def test_base_creation_fails() -> None:
 def test_creation_with_defaults() -> None:
     """Test component default values."""
     component = _TestComponent(
-        id=ComponentId(1),
+        id=ElectricalComponentId(1),
         microgrid_id=MicrogridId(2),
         category=ComponentCategory.UNSPECIFIED,
     )
@@ -57,7 +57,7 @@ def test_creation_full() -> None:
     metadata = {"key1": "value1", "key2": 42}
 
     component = _TestComponent(
-        id=ComponentId(1),
+        id=ElectricalComponentId(1),
         microgrid_id=MicrogridId(2),
         category=ComponentCategory.UNSPECIFIED,
         name="test-component",
@@ -85,7 +85,7 @@ def test_creation_full() -> None:
 def test_str(name: str | None, expected_str: str) -> None:
     """Test string representation of a component."""
     component = _TestComponent(
-        id=ComponentId(1),
+        id=ElectricalComponentId(1),
         microgrid_id=MicrogridId(2),
         category=ComponentCategory.UNSPECIFIED,
         name=name,
@@ -102,7 +102,7 @@ def test_operational_at(is_operational: bool) -> None:
     mock_lifetime.is_operational_at.return_value = is_operational
 
     component = _TestComponent(
-        id=ComponentId(1),
+        id=ElectricalComponentId(1),
         microgrid_id=MicrogridId(1),
         category=ComponentCategory.UNSPECIFIED,
         operational_lifetime=mock_lifetime,
@@ -122,7 +122,7 @@ def test_is_operational_now(mock_datetime: Mock) -> None:
     mock_lifetime = Mock(spec=Lifetime)
     mock_lifetime.is_operational_at.return_value = True
     component = _TestComponent(
-        id=ComponentId(1),
+        id=ElectricalComponentId(1),
         microgrid_id=MicrogridId(1),
         category=ComponentCategory.UNSPECIFIED,
         operational_lifetime=mock_lifetime,
@@ -134,7 +134,7 @@ def test_is_operational_now(mock_datetime: Mock) -> None:
 
 
 COMPONENT = _TestComponent(
-    id=ComponentId(1),
+    id=ElectricalComponentId(1),
     microgrid_id=MicrogridId(1),
     category=ComponentCategory.UNSPECIFIED,
     name="test",
@@ -167,7 +167,7 @@ DIFFERENT_NAME = _TestComponent(
 )
 
 DIFFERENT_ID = _TestComponent(
-    id=ComponentId(2),
+    id=ElectricalComponentId(2),
     microgrid_id=COMPONENT.microgrid_id,
     category=COMPONENT.category,
     name=COMPONENT.name,
@@ -189,7 +189,7 @@ DIFFERENT_MICROGRID_ID = _TestComponent(
 )
 
 DIFFERENT_BOTH_ID = _TestComponent(
-    id=ComponentId(2),
+    id=ElectricalComponentId(2),
     microgrid_id=MicrogridId(2),
     category=COMPONENT.category,
     name=COMPONENT.name,

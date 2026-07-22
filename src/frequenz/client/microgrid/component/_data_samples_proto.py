@@ -9,7 +9,7 @@ from functools import partial
 from frequenz.api.common.v1alpha8.microgrid.electrical_components import (
     electrical_components_pb2,
 )
-from frequenz.client.common.microgrid.components import ComponentId
+from frequenz.client.common.microgrid.electrical_components import ElectricalComponentId
 
 from ..metrics._sample_proto import metric_sample_from_proto_with_issues
 from ._data_samples import ComponentDataSamples
@@ -74,7 +74,7 @@ def component_data_samples_from_proto_with_issues(
         The resulting `ComponentDataSamples` object.
     """
     return ComponentDataSamples(
-        component_id=ComponentId(message.electrical_component_id),
+        component_id=ElectricalComponentId(message.electrical_component_id),
         metric_samples=list(
             map(
                 partial(

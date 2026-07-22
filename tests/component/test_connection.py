@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from unittest.mock import Mock, patch
 
 import pytest
-from frequenz.client.common.microgrid.components import ComponentId
+from frequenz.client.common.microgrid.electrical_components import ElectricalComponentId
 
 from frequenz.client.microgrid import Lifetime
 from frequenz.client.microgrid.component import ComponentConnection
@@ -18,11 +18,13 @@ def test_creation() -> None:
     now = datetime.now(timezone.utc)
     lifetime = Lifetime(start=now)
     connection = ComponentConnection(
-        source=ComponentId(1), destination=ComponentId(2), operational_lifetime=lifetime
+        source=ElectricalComponentId(1),
+        destination=ElectricalComponentId(2),
+        operational_lifetime=lifetime,
     )
 
-    assert connection.source == ComponentId(1)
-    assert connection.destination == ComponentId(2)
+    assert connection.source == ElectricalComponentId(1)
+    assert connection.destination == ElectricalComponentId(2)
     assert connection.operational_lifetime == lifetime
 
 
@@ -31,12 +33,16 @@ def test_validation() -> None:
     with pytest.raises(
         ValueError, match="Source and destination components must be different"
     ):
-        ComponentConnection(source=ComponentId(1), destination=ComponentId(1))
+        ComponentConnection(
+            source=ElectricalComponentId(1), destination=ElectricalComponentId(1)
+        )
 
 
 def test_str() -> None:
     """Test string representation of ComponentConnection."""
-    connection = ComponentConnection(source=ComponentId(1), destination=ComponentId(2))
+    connection = ComponentConnection(
+        source=ElectricalComponentId(1), destination=ElectricalComponentId(2)
+    )
     assert str(connection) == "CID1->CID2"
 
 
@@ -49,8 +55,8 @@ def test_is_operational_at(lifetime_active: bool) -> None:
     mock_lifetime.is_operational_at.return_value = lifetime_active
 
     connection = ComponentConnection(
-        source=ComponentId(1),
-        destination=ComponentId(2),
+        source=ElectricalComponentId(1),
+        destination=ElectricalComponentId(2),
         operational_lifetime=mock_lifetime,
     )
 
@@ -71,8 +77,8 @@ def test_is_operational_now(mock_datetime: Mock, lifetime_active: bool) -> None:
     mock_lifetime.is_operational_at.return_value = lifetime_active
 
     connection = ComponentConnection(
-        source=ComponentId(1),
-        destination=ComponentId(2),
+        source=ElectricalComponentId(1),
+        destination=ElectricalComponentId(2),
         operational_lifetime=mock_lifetime,
     )
 

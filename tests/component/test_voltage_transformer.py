@@ -5,15 +5,15 @@
 
 import pytest
 from frequenz.client.common.microgrid import MicrogridId
-from frequenz.client.common.microgrid.components import ComponentId
+from frequenz.client.common.microgrid.electrical_components import ElectricalComponentId
 
 from frequenz.client.microgrid.component import ComponentCategory, VoltageTransformer
 
 
 @pytest.fixture
-def component_id() -> ComponentId:
+def component_id() -> ElectricalComponentId:
     """Provide a test component ID."""
-    return ComponentId(42)
+    return ElectricalComponentId(42)
 
 
 @pytest.fixture
@@ -26,7 +26,7 @@ def microgrid_id() -> MicrogridId:
     "primary, secondary", [(400.0, 230.0), (0.0, 0.0), (230.0, 400.0), (-230.0, -400.0)]
 )
 def test_creation_ok(
-    component_id: ComponentId,
+    component_id: ElectricalComponentId,
     microgrid_id: MicrogridId,
     primary: float,
     secondary: float,

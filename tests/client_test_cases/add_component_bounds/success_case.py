@@ -9,14 +9,14 @@ from typing import Any
 from frequenz.api.common.v1alpha8.metrics import bounds_pb2, metrics_pb2
 from frequenz.api.microgrid.v1alpha18 import microgrid_pb2
 from frequenz.client.base.conversion import to_timestamp
-from frequenz.client.common.microgrid.components import ComponentId
+from frequenz.client.common.microgrid.electrical_components import ElectricalComponentId
 
 from frequenz.client.microgrid import Validity
 from frequenz.client.microgrid._client import DEFAULT_GRPC_CALL_TIMEOUT
 from frequenz.client.microgrid.metrics import Bounds, Metric
 
 client_args = (
-    ComponentId(1),
+    ElectricalComponentId(1),
     Metric.DC_VOLTAGE,
     [Bounds(lower=200.0, upper=250.0)],
 )

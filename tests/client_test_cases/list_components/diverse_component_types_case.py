@@ -10,7 +10,7 @@ from frequenz.api.common.v1alpha8.microgrid.electrical_components import (
 )
 from frequenz.api.microgrid.v1alpha18 import microgrid_pb2
 from frequenz.client.common.microgrid import MicrogridId
-from frequenz.client.common.microgrid.components import ComponentId
+from frequenz.client.common.microgrid.electrical_components import ElectricalComponentId
 
 from frequenz.client.microgrid.component import (
     AcEvCharger,
@@ -264,59 +264,63 @@ def assert_client_result(result: Any) -> None:
     components = list(result)
     assert components == [
         GridConnectionPoint(
-            id=ComponentId(1), microgrid_id=MicrogridId(1), rated_fuse_current=10_000
+            id=ElectricalComponentId(1),
+            microgrid_id=MicrogridId(1),
+            rated_fuse_current=10_000,
         ),
-        SolarInverter(id=ComponentId(2), microgrid_id=MicrogridId(0)),
-        LiIonBattery(id=ComponentId(3), microgrid_id=MicrogridId(0)),
-        Converter(id=ComponentId(4), microgrid_id=MicrogridId(0)),
-        Meter(id=ComponentId(5), microgrid_id=MicrogridId(0)),
-        AcEvCharger(id=ComponentId(6), microgrid_id=MicrogridId(0)),
-        Hvac(id=ComponentId(8), microgrid_id=MicrogridId(0)),
+        SolarInverter(id=ElectricalComponentId(2), microgrid_id=MicrogridId(0)),
+        LiIonBattery(id=ElectricalComponentId(3), microgrid_id=MicrogridId(0)),
+        Converter(id=ElectricalComponentId(4), microgrid_id=MicrogridId(0)),
+        Meter(id=ElectricalComponentId(5), microgrid_id=MicrogridId(0)),
+        AcEvCharger(id=ElectricalComponentId(6), microgrid_id=MicrogridId(0)),
+        Hvac(id=ElectricalComponentId(8), microgrid_id=MicrogridId(0)),
         # Additional battery types
-        UnspecifiedBattery(id=ComponentId(9), microgrid_id=MicrogridId(0)),
-        NaIonBattery(id=ComponentId(10), microgrid_id=MicrogridId(0)),
-        UnrecognizedBattery(id=ComponentId(11), microgrid_id=MicrogridId(0), type=666),
+        UnspecifiedBattery(id=ElectricalComponentId(9), microgrid_id=MicrogridId(0)),
+        NaIonBattery(id=ElectricalComponentId(10), microgrid_id=MicrogridId(0)),
+        UnrecognizedBattery(
+            id=ElectricalComponentId(11), microgrid_id=MicrogridId(0), type=666
+        ),
         # Additional inverter types
-        UnspecifiedInverter(id=ComponentId(12), microgrid_id=MicrogridId(0)),
-        BatteryInverter(id=ComponentId(13), microgrid_id=MicrogridId(0)),
-        HybridInverter(id=ComponentId(14), microgrid_id=MicrogridId(0)),
+        UnspecifiedInverter(id=ElectricalComponentId(12), microgrid_id=MicrogridId(0)),
+        BatteryInverter(id=ElectricalComponentId(13), microgrid_id=MicrogridId(0)),
+        HybridInverter(id=ElectricalComponentId(14), microgrid_id=MicrogridId(0)),
         UnrecognizedInverter(
-            id=ComponentId(15), microgrid_id=MicrogridId(0), type=777
+            id=ElectricalComponentId(15), microgrid_id=MicrogridId(0), type=777
         ),  # Default type value
         # Additional EV charger types
-        UnspecifiedEvCharger(id=ComponentId(16), microgrid_id=MicrogridId(0)),
-        DcEvCharger(id=ComponentId(17), microgrid_id=MicrogridId(0)),
-        HybridEvCharger(id=ComponentId(18), microgrid_id=MicrogridId(0)),
+        UnspecifiedEvCharger(id=ElectricalComponentId(16), microgrid_id=MicrogridId(0)),
+        DcEvCharger(id=ElectricalComponentId(17), microgrid_id=MicrogridId(0)),
+        HybridEvCharger(id=ElectricalComponentId(18), microgrid_id=MicrogridId(0)),
         UnrecognizedEvCharger(
-            id=ComponentId(19), microgrid_id=MicrogridId(0), type=888
+            id=ElectricalComponentId(19), microgrid_id=MicrogridId(0), type=888
         ),  # Default type value
         # Additional component categories
-        Chp(id=ComponentId(20), microgrid_id=MicrogridId(0)),
-        CryptoMiner(id=ComponentId(21), microgrid_id=MicrogridId(0)),
-        Electrolyzer(id=ComponentId(22), microgrid_id=MicrogridId(0)),
-        Precharger(id=ComponentId(23), microgrid_id=MicrogridId(0)),
-        Relay(id=ComponentId(24), microgrid_id=MicrogridId(0)),
+        Chp(id=ElectricalComponentId(20), microgrid_id=MicrogridId(0)),
+        CryptoMiner(id=ElectricalComponentId(21), microgrid_id=MicrogridId(0)),
+        Electrolyzer(id=ElectricalComponentId(22), microgrid_id=MicrogridId(0)),
+        Precharger(id=ElectricalComponentId(23), microgrid_id=MicrogridId(0)),
+        Relay(id=ElectricalComponentId(24), microgrid_id=MicrogridId(0)),
         VoltageTransformer(
-            id=ComponentId(25),
+            id=ElectricalComponentId(25),
             microgrid_id=MicrogridId(0),
             primary_voltage=0.0,
             secondary_voltage=0.0,
         ),
-        WindTurbine(id=ComponentId(26), microgrid_id=MicrogridId(0)),
+        WindTurbine(id=ElectricalComponentId(26), microgrid_id=MicrogridId(0)),
         # Problematic components
-        UnspecifiedComponent(id=ComponentId(27), microgrid_id=MicrogridId(0)),
+        UnspecifiedComponent(id=ElectricalComponentId(27), microgrid_id=MicrogridId(0)),
         UnrecognizedComponent(
-            id=ComponentId(28), microgrid_id=MicrogridId(0), category=999
+            id=ElectricalComponentId(28), microgrid_id=MicrogridId(0), category=999
         ),
         MismatchedCategoryComponent(
-            id=ComponentId(29),
+            id=ElectricalComponentId(29),
             microgrid_id=MicrogridId(0),
             category=ComponentCategory.BATTERY,
             category_specific_metadata={
                 "type": "INVERTER_TYPE_PV",
             },
         ),
-        SteamBoiler(id=ComponentId(30), microgrid_id=MicrogridId(0)),
+        SteamBoiler(id=ElectricalComponentId(30), microgrid_id=MicrogridId(0)),
     ]
 
     # Make sure we are testing all known categories and types

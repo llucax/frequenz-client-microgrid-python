@@ -13,7 +13,7 @@ from frequenz.api.common.v1alpha8.microgrid import lifetime_pb2
 from frequenz.api.common.v1alpha8.microgrid.electrical_components import (
     electrical_components_pb2,
 )
-from frequenz.client.common.microgrid.components import ComponentId
+from frequenz.client.common.microgrid.electrical_components import ElectricalComponentId
 from google.protobuf import timestamp_pb2
 
 from frequenz.client.microgrid.component import ComponentConnection
@@ -74,10 +74,10 @@ def test_success(proto_data: dict[str, Any], expected_minor_issues: list[str]) -
     assert connection is not None
     assert not major_issues
     assert minor_issues == expected_minor_issues
-    assert connection.source == ComponentId(
+    assert connection.source == ElectricalComponentId(
         proto_data["source_electrical_component_id"]
     )
-    assert connection.destination == ComponentId(
+    assert connection.destination == ElectricalComponentId(
         proto_data["destination_electrical_component_id"]
     )
 
@@ -128,8 +128,8 @@ def test_invalid_lifetime(mock_lifetime_from_proto: Mock) -> None:
     )
 
     assert connection is not None
-    assert connection.source == ComponentId(1)
-    assert connection.destination == ComponentId(2)
+    assert connection.source == ElectricalComponentId(1)
+    assert connection.destination == ElectricalComponentId(2)
     assert major_issues == [
         "invalid operational lifetime (Invalid lifetime), considering it as missing "
         "(i.e. always operational)"

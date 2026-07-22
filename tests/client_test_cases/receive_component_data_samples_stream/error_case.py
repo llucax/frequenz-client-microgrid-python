@@ -14,13 +14,13 @@ from frequenz.api.common.v1alpha8.microgrid.electrical_components import (
 )
 from frequenz.api.microgrid.v1alpha18 import microgrid_pb2
 from frequenz.channels import Receiver, ReceiverStoppedError
-from frequenz.client.common.microgrid.components import ComponentId
+from frequenz.client.common.microgrid.electrical_components import ElectricalComponentId
 from grpc import StatusCode
 
 from frequenz.client.microgrid.component import ComponentDataSamples
 from tests.util import make_grpc_error
 
-client_args = (ComponentId(1), [metrics_pb2.Metric.METRIC_DC_VOLTAGE])
+client_args = (ElectricalComponentId(1), [metrics_pb2.Metric.METRIC_DC_VOLTAGE])
 
 _Filter: TypeAlias = (
     microgrid_pb2.ReceiveElectricalComponentTelemetryStreamRequest.ComponentTelemetryStreamFilter
@@ -75,7 +75,7 @@ async def assert_client_result(receiver: Receiver[Any]) -> None:
 
     async for result in receiver:
         assert result == ComponentDataSamples(
-            component_id=ComponentId(1), metric_samples=[], states=[]
+            component_id=ElectricalComponentId(1), metric_samples=[], states=[]
         )
         # We need the type ignore here because mypy doesn't realize _state is
         # global and updated from outside this function, so it wrongly narrows

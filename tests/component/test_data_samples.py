@@ -11,7 +11,7 @@ from frequenz.api.common.v1alpha8.metrics import bounds_pb2, metrics_pb2
 from frequenz.api.common.v1alpha8.microgrid.electrical_components import (
     electrical_components_pb2,
 )
-from frequenz.client.common.microgrid.components import ComponentId
+from frequenz.client.common.microgrid.electrical_components import ElectricalComponentId
 from google.protobuf.timestamp_pb2 import Timestamp
 
 from frequenz.client.microgrid.component import (
@@ -41,9 +41,9 @@ OVERCURRENT = electrical_components_pb2.ELECTRICAL_COMPONENT_DIAGNOSTIC_CODE_OVE
 
 
 @pytest.fixture
-def component_id() -> ComponentId:
+def component_id() -> ElectricalComponentId:
     """Provide a test component ID."""
-    return ComponentId(42)
+    return ElectricalComponentId(42)
 
 
 @pytest.fixture
@@ -75,7 +75,7 @@ def state_sample(timestamp: datetime) -> ComponentStateSample:
 
 
 def test_init(
-    component_id: ComponentId,
+    component_id: ElectricalComponentId,
     metric_sample: MetricSample,
     state_sample: ComponentStateSample,
 ) -> None:
@@ -94,7 +94,7 @@ def test_init(
 
 
 def test_equality(
-    component_id: ComponentId,
+    component_id: ElectricalComponentId,
     metric_sample: MetricSample,
     state_sample: ComponentStateSample,
 ) -> None:
@@ -112,7 +112,7 @@ def test_equality(
     )
 
     different_id = ComponentDataSamples(
-        component_id=ComponentId(99),
+        component_id=ElectricalComponentId(99),
         metric_samples=[metric_sample],
         states=[state_sample],
     )
@@ -164,7 +164,7 @@ class _ComponentDataSamplesConversionTestCase:
                 electrical_component_id=1
             ),
             expected_samples=ComponentDataSamples(
-                component_id=ComponentId(1), metric_samples=[], states=[]
+                component_id=ElectricalComponentId(1), metric_samples=[], states=[]
             ),
         ),
         _ComponentDataSamplesConversionTestCase(
@@ -182,7 +182,7 @@ class _ComponentDataSamplesConversionTestCase:
                 ],
             ),
             expected_samples=ComponentDataSamples(
-                component_id=ComponentId(2),
+                component_id=ElectricalComponentId(2),
                 metric_samples=[
                     MetricSample(
                         sampled_at=DATETIME,
@@ -208,7 +208,7 @@ class _ComponentDataSamplesConversionTestCase:
                 ],
             ),
             expected_samples=ComponentDataSamples(
-                component_id=ComponentId(3),
+                component_id=ElectricalComponentId(3),
                 metric_samples=[],
                 states=[
                     ComponentStateSample(
@@ -236,7 +236,7 @@ class _ComponentDataSamplesConversionTestCase:
                 ],
             ),
             expected_samples=ComponentDataSamples(
-                component_id=ComponentId(4),
+                component_id=ElectricalComponentId(4),
                 metric_samples=[
                     MetricSample(
                         sampled_at=DATETIME,
@@ -269,7 +269,7 @@ class _ComponentDataSamplesConversionTestCase:
                 ],
             ),
             expected_samples=ComponentDataSamples(
-                component_id=ComponentId(5),
+                component_id=ElectricalComponentId(5),
                 metric_samples=[
                     MetricSample(
                         sampled_at=DATETIME,
@@ -335,7 +335,7 @@ class _ComponentDataSamplesConversionTestCase:
                 ],
             ),
             expected_samples=ComponentDataSamples(
-                component_id=ComponentId(6),
+                component_id=ElectricalComponentId(6),
                 metric_samples=[
                     MetricSample(
                         sampled_at=DATETIME,

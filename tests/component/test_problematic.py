@@ -5,7 +5,7 @@
 
 import pytest
 from frequenz.client.common.microgrid import MicrogridId
-from frequenz.client.common.microgrid.components import ComponentId
+from frequenz.client.common.microgrid.electrical_components import ElectricalComponentId
 
 from frequenz.client.microgrid.component import (
     ComponentCategory,
@@ -17,9 +17,9 @@ from frequenz.client.microgrid.component import (
 
 
 @pytest.fixture
-def component_id() -> ComponentId:
+def component_id() -> ElectricalComponentId:
     """Provide a test component ID."""
-    return ComponentId(42)
+    return ElectricalComponentId(42)
 
 
 @pytest.fixture
@@ -29,7 +29,7 @@ def microgrid_id() -> MicrogridId:
 
 
 def test_abstract_problematic_component_cannot_be_instantiated(
-    component_id: ComponentId, microgrid_id: MicrogridId
+    component_id: ElectricalComponentId, microgrid_id: MicrogridId
 ) -> None:
     """Test that ProblematicComponent base class cannot be instantiated."""
     with pytest.raises(
@@ -46,7 +46,7 @@ def test_abstract_problematic_component_cannot_be_instantiated(
 
 
 def test_unspecified_component(
-    component_id: ComponentId, microgrid_id: MicrogridId
+    component_id: ElectricalComponentId, microgrid_id: MicrogridId
 ) -> None:
     """Test initialization and properties of UnspecifiedComponent."""
     component = UnspecifiedComponent(
@@ -66,7 +66,7 @@ def test_unspecified_component(
 
 
 def test_mismatched_category_component_with_known_category(
-    component_id: ComponentId, microgrid_id: MicrogridId
+    component_id: ElectricalComponentId, microgrid_id: MicrogridId
 ) -> None:
     """Test MismatchedCategoryComponent with a known ComponentCategory."""
     expected_category = ComponentCategory.BATTERY
@@ -88,7 +88,7 @@ def test_mismatched_category_component_with_known_category(
 
 
 def test_mismatched_category_component_with_unrecognized_category(
-    component_id: ComponentId, microgrid_id: MicrogridId
+    component_id: ElectricalComponentId, microgrid_id: MicrogridId
 ) -> None:
     """Test MismatchedCategoryComponent with an unrecognized integer category."""
     expected_category = 999
@@ -110,7 +110,7 @@ def test_mismatched_category_component_with_unrecognized_category(
 
 
 def test_unrecognized_component_type(
-    component_id: ComponentId, microgrid_id: MicrogridId
+    component_id: ElectricalComponentId, microgrid_id: MicrogridId
 ) -> None:
     """Test initialization and properties of UnrecognizedComponent type."""
     component = UnrecognizedComponent(

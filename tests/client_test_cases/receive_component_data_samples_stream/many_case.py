@@ -14,14 +14,14 @@ from frequenz.api.common.v1alpha8.microgrid.electrical_components import (
 from frequenz.api.microgrid.v1alpha18 import microgrid_pb2
 from frequenz.channels import Receiver, ReceiverStoppedError
 from frequenz.client.base.conversion import to_timestamp
-from frequenz.client.common.microgrid.components import ComponentId
+from frequenz.client.common.microgrid.electrical_components import ElectricalComponentId
 
 from frequenz.client.microgrid.component import ComponentDataSamples
 from frequenz.client.microgrid.metrics import Metric, MetricSample
 from frequenz.client.microgrid.metrics._sample import AggregatedMetricValue
 
 client_args = (
-    ComponentId(1),
+    ElectricalComponentId(1),
     [
         metrics_pb2.Metric.METRIC_DC_VOLTAGE,
         metrics_pb2.Metric.METRIC_DC_CURRENT,
@@ -112,7 +112,7 @@ async def assert_client_result(receiver: Receiver[Any]) -> None:
     """Assert that the client result matches the expected ComponentDataSamples."""
     result = await receiver.receive()
     assert result == ComponentDataSamples(
-        component_id=ComponentId(1),
+        component_id=ElectricalComponentId(1),
         metric_samples=[
             MetricSample(
                 metric=Metric.DC_VOLTAGE,
@@ -139,7 +139,7 @@ async def assert_client_result(receiver: Receiver[Any]) -> None:
 
     result = await receiver.receive()
     assert result == ComponentDataSamples(
-        component_id=ComponentId(1),
+        component_id=ElectricalComponentId(1),
         metric_samples=[
             MetricSample(
                 metric=Metric.DC_VOLTAGE,

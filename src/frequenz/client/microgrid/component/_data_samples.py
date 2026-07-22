@@ -5,7 +5,7 @@
 
 from dataclasses import dataclass
 
-from frequenz.client.common.microgrid.components import ComponentId
+from frequenz.client.common.microgrid.electrical_components import ElectricalComponentId
 
 from ..metrics._sample import MetricSample
 from ._state_sample import ComponentStateSample
@@ -15,7 +15,7 @@ from ._state_sample import ComponentStateSample
 class ComponentDataSamples:
     """An aggregate of multiple metrics, states, and errors of a component."""
 
-    component_id: ComponentId
+    component_id: ElectricalComponentId
     """The unique identifier of the component."""
 
     metric_samples: list[MetricSample]

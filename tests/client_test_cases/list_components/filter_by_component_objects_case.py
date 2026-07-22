@@ -10,14 +10,16 @@ from frequenz.api.common.v1alpha8.microgrid.electrical_components import (
 )
 from frequenz.api.microgrid.v1alpha18 import microgrid_pb2
 from frequenz.client.common.microgrid import MicrogridId
-from frequenz.client.common.microgrid.components import ComponentId
+from frequenz.client.common.microgrid.electrical_components import ElectricalComponentId
 
 from frequenz.client.microgrid.component import GridConnectionPoint, LiIonBattery
 
 grid_component = GridConnectionPoint(
-    id=ComponentId(1), microgrid_id=MicrogridId(1), rated_fuse_current=10_000
+    id=ElectricalComponentId(1), microgrid_id=MicrogridId(1), rated_fuse_current=10_000
 )
-battery_component = LiIonBattery(id=ComponentId(3), microgrid_id=MicrogridId(1))
+battery_component = LiIonBattery(
+    id=ElectricalComponentId(3), microgrid_id=MicrogridId(1)
+)
 
 client_kwargs = {"components": [grid_component, battery_component]}
 

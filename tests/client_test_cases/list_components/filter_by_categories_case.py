@@ -10,7 +10,7 @@ from frequenz.api.common.v1alpha8.microgrid.electrical_components import (
 )
 from frequenz.api.microgrid.v1alpha18 import microgrid_pb2
 from frequenz.client.common.microgrid import MicrogridId
-from frequenz.client.common.microgrid.components import ComponentId
+from frequenz.client.common.microgrid.electrical_components import ElectricalComponentId
 
 from frequenz.client.microgrid.component import (
     ComponentCategory,
@@ -66,6 +66,6 @@ grpc_response = microgrid_pb2.ListElectricalComponentsResponse(
 def assert_client_result(result: Any) -> None:
     """Assert that the client result matches the expected filtered components."""
     assert list(result) == [
-        SolarInverter(id=ComponentId(2), microgrid_id=MicrogridId(0)),
-        LiIonBattery(id=ComponentId(3), microgrid_id=MicrogridId(0)),
+        SolarInverter(id=ElectricalComponentId(2), microgrid_id=MicrogridId(0)),
+        LiIonBattery(id=ElectricalComponentId(3), microgrid_id=MicrogridId(0)),
     ]

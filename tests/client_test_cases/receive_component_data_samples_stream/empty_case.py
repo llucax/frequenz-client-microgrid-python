@@ -12,11 +12,11 @@ from frequenz.api.common.v1alpha8.microgrid.electrical_components import (
 )
 from frequenz.api.microgrid.v1alpha18 import microgrid_pb2
 from frequenz.channels import Receiver, ReceiverStoppedError
-from frequenz.client.common.microgrid.components import ComponentId
+from frequenz.client.common.microgrid.electrical_components import ElectricalComponentId
 
 from frequenz.client.microgrid.component import ComponentDataSamples
 
-client_args = (ComponentId(1), [metrics_pb2.Metric.METRIC_AC_CURRENT])
+client_args = (ElectricalComponentId(1), [metrics_pb2.Metric.METRIC_AC_CURRENT])
 
 _Filter: TypeAlias = (
     microgrid_pb2.ReceiveElectricalComponentTelemetryStreamRequest.ComponentTelemetryStreamFilter
@@ -46,7 +46,7 @@ async def assert_client_result(receiver: Receiver[Any]) -> None:
     """Assert that the client result matches the expected empty data."""
     result = await receiver.receive()
     assert result == ComponentDataSamples(
-        component_id=ComponentId(1), metric_samples=[], states=[]
+        component_id=ElectricalComponentId(1), metric_samples=[], states=[]
     )
 
     with pytest.raises(ReceiverStoppedError):

@@ -8,10 +8,10 @@ from unittest.mock import AsyncMock
 
 # pylint: disable-next=import-error
 from _config import RESPONSE_CLASS  # type: ignore[import-not-found]
-from frequenz.client.common.microgrid.components import ComponentId
+from frequenz.client.common.microgrid.electrical_components import ElectricalComponentId
 
 client_kwargs = {
-    "component": ComponentId(1),
+    "component": ElectricalComponentId(1),
     "power": 1000.0,
     "request_lifetime": timedelta(seconds=1),
 }

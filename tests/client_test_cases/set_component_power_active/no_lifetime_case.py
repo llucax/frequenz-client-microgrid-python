@@ -9,9 +9,9 @@ import pytest
 
 # pylint: disable-next=import-error
 from _config import RESPONSE_CLASS  # type: ignore[import-not-found]
-from frequenz.client.common.microgrid.components import ComponentId
+from frequenz.client.common.microgrid.electrical_components import ElectricalComponentId
 
-client_args = (ComponentId(1), 1000.0)
+client_args = (ElectricalComponentId(1), 1000.0)
 
 
 # No client_kwargs needed for this call

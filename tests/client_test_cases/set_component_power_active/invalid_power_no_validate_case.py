@@ -9,10 +9,10 @@ from typing import Any
 
 # pylint: disable-next=import-error
 from _config import RESPONSE_CLASS  # type: ignore[import-not-found]
-from frequenz.client.common.microgrid.components import ComponentId
+from frequenz.client.common.microgrid.electrical_components import ElectricalComponentId
 
 client_kwargs = {
-    "component": ComponentId(1),
+    "component": ElectricalComponentId(1),
     "power": float("nan"),
     "request_lifetime": timedelta(seconds=60),
     "validate_arguments": False,

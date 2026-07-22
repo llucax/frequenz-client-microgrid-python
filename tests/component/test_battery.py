@@ -7,7 +7,7 @@ import dataclasses
 
 import pytest
 from frequenz.client.common.microgrid import MicrogridId
-from frequenz.client.common.microgrid.components import ComponentId
+from frequenz.client.common.microgrid.electrical_components import ElectricalComponentId
 
 from frequenz.client.microgrid.component import (
     Battery,
@@ -30,9 +30,9 @@ class BatteryTestCase:
 
 
 @pytest.fixture
-def component_id() -> ComponentId:
+def component_id() -> ElectricalComponentId:
     """Provide a test component ID."""
-    return ComponentId(42)
+    return ElectricalComponentId(42)
 
 
 @pytest.fixture
@@ -42,7 +42,7 @@ def microgrid_id() -> MicrogridId:
 
 
 def test_abstract_battery_cannot_be_instantiated(
-    component_id: ComponentId, microgrid_id: MicrogridId
+    component_id: ElectricalComponentId, microgrid_id: MicrogridId
 ) -> None:
     """Test that Battery base class cannot be instantiated."""
     with pytest.raises(TypeError, match="Cannot instantiate Battery directly"):
@@ -74,7 +74,9 @@ def test_abstract_battery_cannot_be_instantiated(
     ids=lambda case: case.name,
 )
 def test_recognized_battery_types(
-    case: BatteryTestCase, component_id: ComponentId, microgrid_id: MicrogridId
+    case: BatteryTestCase,
+    component_id: ElectricalComponentId,
+    microgrid_id: MicrogridId,
 ) -> None:
     """Test initialization and properties of different battery types."""
     battery = case.cls(
@@ -95,7 +97,7 @@ def test_recognized_battery_types(
 
 
 def test_unrecognized_battery_type(
-    component_id: ComponentId, microgrid_id: MicrogridId
+    component_id: ElectricalComponentId, microgrid_id: MicrogridId
 ) -> None:
     """Test initialization and properties of different battery types."""
     battery = UnrecognizedBattery(

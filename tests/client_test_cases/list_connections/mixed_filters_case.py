@@ -1,26 +1,26 @@
 # License: MIT
 # Copyright © 2025 Frequenz Energy-as-a-Service GmbH
 
-"""Test list_connections with mixed ComponentId and Component objects."""
+"""Test list_connections with mixed ElectricalComponentId and Component objects."""
 
 from datetime import datetime, timezone
 from typing import Any
 
 from frequenz.api.microgrid.v1alpha18 import microgrid_pb2
 from frequenz.client.common.microgrid import MicrogridId
-from frequenz.client.common.microgrid.components import ComponentId
+from frequenz.client.common.microgrid.electrical_components import ElectricalComponentId
 
 from frequenz.client.microgrid.component import GridConnectionPoint, Meter
 
-# Mix ComponentId and Component objects
+# Mix ElectricalComponentId and Component objects
 grid_component = GridConnectionPoint(
-    id=ComponentId(1), microgrid_id=MicrogridId(1), rated_fuse_current=10_000
+    id=ElectricalComponentId(1), microgrid_id=MicrogridId(1), rated_fuse_current=10_000
 )
-meter_component = Meter(id=ComponentId(4), microgrid_id=MicrogridId(1))
+meter_component = Meter(id=ElectricalComponentId(4), microgrid_id=MicrogridId(1))
 
 client_kwargs = {
-    "sources": [grid_component, ComponentId(2)],
-    "destinations": [ComponentId(3), meter_component],
+    "sources": [grid_component, ElectricalComponentId(2)],
+    "destinations": [ElectricalComponentId(3), meter_component],
 }
 
 

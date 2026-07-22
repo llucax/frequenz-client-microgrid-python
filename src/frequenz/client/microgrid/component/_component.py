@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 from typing import Any, Self
 
 from frequenz.client.common.microgrid import MicrogridId
-from frequenz.client.common.microgrid.components import ComponentId
+from frequenz.client.common.microgrid.electrical_components import ElectricalComponentId
 
 from .._lifetime import Lifetime
 from ..metrics._bounds import Bounds
@@ -21,7 +21,7 @@ from ._category import ComponentCategory
 class Component:  # pylint: disable=too-many-instance-attributes
     """A base class for all components."""
 
-    id: ComponentId
+    id: ElectricalComponentId
     """This component's ID."""
 
     microgrid_id: MicrogridId
@@ -105,7 +105,7 @@ class Component:  # pylint: disable=too-many-instance-attributes
         return self.is_operational_at(datetime.now(timezone.utc))
 
     @property
-    def identity(self) -> tuple[ComponentId, MicrogridId]:
+    def identity(self) -> tuple[ElectricalComponentId, MicrogridId]:
         """The identity of this component.
 
         This uses the component ID and microgrid ID to identify a component

@@ -5,15 +5,15 @@
 
 import pytest
 from frequenz.client.common.microgrid import MicrogridId
-from frequenz.client.common.microgrid.components import ComponentId
+from frequenz.client.common.microgrid.electrical_components import ElectricalComponentId
 
 from frequenz.client.microgrid.component import ComponentCategory, GridConnectionPoint
 
 
 @pytest.fixture
-def component_id() -> ComponentId:
+def component_id() -> ElectricalComponentId:
     """Provide a test component ID."""
-    return ComponentId(42)
+    return ElectricalComponentId(42)
 
 
 @pytest.fixture
@@ -24,7 +24,9 @@ def microgrid_id() -> MicrogridId:
 
 @pytest.mark.parametrize("rated_fuse_current", [0, 50])
 def test_creation_ok(
-    component_id: ComponentId, microgrid_id: MicrogridId, rated_fuse_current: int
+    component_id: ElectricalComponentId,
+    microgrid_id: MicrogridId,
+    rated_fuse_current: int,
 ) -> None:
     """Test GridConnectionPoint initialization with different rated fuse currents."""
     grid_point = GridConnectionPoint(
@@ -46,7 +48,7 @@ def test_creation_ok(
 
 
 def test_creation_invalid_rated_fuse_current(
-    component_id: ComponentId, microgrid_id: MicrogridId
+    component_id: ElectricalComponentId, microgrid_id: MicrogridId
 ) -> None:
     """Test Fuse component initialization with invalid rated current."""
     with pytest.raises(

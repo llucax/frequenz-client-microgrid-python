@@ -5,14 +5,18 @@
 
 from typing import Any
 
-from frequenz.client.common.microgrid.components import ComponentId
+from frequenz.client.common.microgrid.electrical_components import ElectricalComponentId
 from grpc import StatusCode
 
 from frequenz.client.microgrid import PermissionDenied
 from frequenz.client.microgrid.metrics import Bounds, Metric
 from tests.util import make_grpc_error
 
-client_args = (ComponentId(1), Metric.AC_VOLTAGE, [Bounds(lower=200.0, upper=250.0)])
+client_args = (
+    ElectricalComponentId(1),
+    Metric.AC_VOLTAGE,
+    [Bounds(lower=200.0, upper=250.0)],
+)
 
 
 def assert_stub_method_call(stub_method: Any) -> None:

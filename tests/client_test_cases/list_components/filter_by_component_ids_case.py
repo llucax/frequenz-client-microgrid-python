@@ -10,11 +10,11 @@ from frequenz.api.common.v1alpha8.microgrid.electrical_components import (
 )
 from frequenz.api.microgrid.v1alpha18 import microgrid_pb2
 from frequenz.client.common.microgrid import MicrogridId
-from frequenz.client.common.microgrid.components import ComponentId
+from frequenz.client.common.microgrid.electrical_components import ElectricalComponentId
 
 from frequenz.client.microgrid.component import GridConnectionPoint, LiIonBattery
 
-client_kwargs = {"components": [ComponentId(1), ComponentId(3)]}
+client_kwargs = {"components": [ElectricalComponentId(1), ElectricalComponentId(3)]}
 
 
 _CategorySpecificInfo: TypeAlias = (
@@ -61,7 +61,9 @@ def assert_client_result(result: Any) -> None:
     """Assert that the client result matches the expected filtered components."""
     assert list(result) == [
         GridConnectionPoint(
-            id=ComponentId(1), microgrid_id=MicrogridId(1), rated_fuse_current=10_000
+            id=ElectricalComponentId(1),
+            microgrid_id=MicrogridId(1),
+            rated_fuse_current=10_000,
         ),
-        LiIonBattery(id=ComponentId(3), microgrid_id=MicrogridId(0)),
+        LiIonBattery(id=ElectricalComponentId(3), microgrid_id=MicrogridId(0)),
     ]

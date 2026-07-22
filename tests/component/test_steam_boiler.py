@@ -4,14 +4,14 @@
 """Tests for steam boiler component."""
 
 from frequenz.client.common.microgrid import MicrogridId
-from frequenz.client.common.microgrid.components import ComponentId
+from frequenz.client.common.microgrid.electrical_components import ElectricalComponentId
 
 from frequenz.client.microgrid.component import ComponentCategory, SteamBoiler
 
 
 def test_init() -> None:
     """Test steam boiler component initialization."""
-    component_id = ComponentId(1)
+    component_id = ElectricalComponentId(1)
     microgrid_id = MicrogridId(1)
     component = SteamBoiler(
         id=component_id,

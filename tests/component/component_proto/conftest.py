@@ -13,7 +13,7 @@ from frequenz.api.common.v1alpha8.microgrid.electrical_components import (
 )
 from frequenz.client.base.conversion import to_timestamp
 from frequenz.client.common.microgrid import MicrogridId
-from frequenz.client.common.microgrid.components import ComponentId
+from frequenz.client.common.microgrid.electrical_components import ElectricalComponentId
 from google.protobuf.timestamp_pb2 import Timestamp
 
 from frequenz.client.microgrid import Lifetime
@@ -25,7 +25,7 @@ DEFAULT_LIFETIME = Lifetime(
     start=datetime(2020, 1, 1, tzinfo=timezone.utc),
     end=datetime(2030, 1, 1, tzinfo=timezone.utc),
 )
-DEFAULT_COMPONENT_ID = ComponentId(42)
+DEFAULT_COMPONENT_ID = ElectricalComponentId(42)
 DEFAULT_MICROGRID_ID = MicrogridId(1)
 DEFAULT_NAME = "test_component"
 DEFAULT_MANUFACTURER = "test_manufacturer"
@@ -33,7 +33,7 @@ DEFAULT_MODEL_NAME = "test_model"
 
 
 @pytest.fixture
-def component_id() -> ComponentId:
+def component_id() -> ElectricalComponentId:
     """Provide a test component ID."""
     return DEFAULT_COMPONENT_ID
 
@@ -46,7 +46,7 @@ def microgrid_id() -> MicrogridId:
 
 @pytest.fixture
 def default_component_base_data(
-    component_id: ComponentId, microgrid_id: MicrogridId
+    component_id: ElectricalComponentId, microgrid_id: MicrogridId
 ) -> ComponentBaseData:
     """Provide a fixture for common component fields."""
     return ComponentBaseData(
